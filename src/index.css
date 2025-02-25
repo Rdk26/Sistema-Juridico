@@ -1,0 +1,54 @@
+/* index.css */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Estilos personalizados */
+@layer components {
+  /* Cards */
+  .card-juridico {
+    @apply bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6;
+  }
+
+  /* Botões */
+  .btn-primary {
+    @apply bg-[#2A3F54] text-white px-4 py-2 rounded-lg hover:bg-[#34495E] transition-colors;
+  }
+
+  /* Textos */
+  .texto-escuro {
+    @apply dark:text-gray-100 text-gray-800;
+  }
+
+  /* Tabelas */
+  .tabela-juridica th {
+    @apply bg-[#2A3F54] text-white text-left px-6 py-3 text-sm font-semibold;
+  }
+
+  .tabela-juridica td {
+    @apply border-b border-gray-200 dark:border-gray-700 px-6 py-4;
+  }
+
+  /* Menu lateral */
+  .menu-item-ativo {
+    @apply bg-[#34495E] text-white !important;
+  }
+}
+
+/* Dark mode global */
+.dark {
+  color-scheme: dark;
+}
+
+/* Scrollbar personalizada */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  @apply bg-gray-100 dark:bg-gray-800;
+}
+
+::-webkit-scrollbar-thumb {
+  @apply bg-[#2A3F54] rounded-full;
+}
