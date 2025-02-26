@@ -10,6 +10,8 @@ import AtividadesPage from './pages/AtividadesPage';
 import ConfiguracoesPage from './pages/ConfiguracoesPage';
 import RelatoriosPage from './pages/RelatoriosPage';
 import SuportePage from './pages/SuportePage';
+import IntimacoesPage from './pages/IntimacoesPage';
+import PessoasPage from './pages/PessoasPage';
 
 function App() {
   const [isDarkMode, setIsDarkMode] = useState(false);
@@ -29,7 +31,9 @@ function App() {
           <Route path="/Atividades" element={<AtividadesPage />} />
           <Route path="/Configurações" element={<ConfiguracoesPage />} />
           <Route path="/financeiro" element={<FinanceiroPage />} />
+          <Route path="/Intimações" element={<IntimacoesPage />} />
           <Route path="/Modelos" element={<ModelosPage />} />
+          <Route path="/Pessoas" element={<PessoasPage />} />
           <Route path="/processos" element={<ProcessosPage />} />
           <Route path="/Relatórios" element={<RelatoriosPage />} />
           <Route path="/Suporte" element={<SuportePage />} />

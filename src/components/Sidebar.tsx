@@ -9,6 +9,8 @@ import {
   Settings,
   HelpCircle,
   Gavel,
+  Users,
+  Bell            
 } from 'lucide-react';
 
 // Definindo tipo para os itens do menu
@@ -24,7 +26,9 @@ const menuItems: MenuItem[] = [
   { icon: Scale, label: 'Financeiro' },
   { icon: FileCheck, label: 'Modelos' },
   { icon: Activity, label: 'Atividades' },
-  { icon: BarChart3, label: 'Relatórios' },
+  { icon: Users, label: 'Pessoas'},
+  { icon: Bell, label: 'Intimações'},
+  { icon: BarChart3, label: 'Relatórios'},
   { icon: Settings, label: 'Configurações' },
   { icon: HelpCircle, label: 'Suporte' },
 ];
