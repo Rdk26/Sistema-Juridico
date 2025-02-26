@@ -11,7 +11,7 @@ export function Header({ onThemeToggle }: HeaderProps) {
   
   const metrics = [
     { label: 'Meta Mensal', value: 'MT 50.000,00' },
-    { label: 'A Receber', value: 'MT 35.000,00' },
+    { label: 'A Receber', value: 'MT 35.000,00', },
     { label: 'Saldo Atual', value: 'MT 28.500,00' },
   ];
 

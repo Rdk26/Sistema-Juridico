@@ -5,7 +5,7 @@ import { FinanceChart } from './FinanceChart';
 import { ReportsSection } from './ReportsSection';
 
 type DashboardProps = {
-  onThemeToggle: () => void; // Mantenha a definição
+  onThemeToggle: () => void; 
 };
 
 

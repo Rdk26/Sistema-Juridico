@@ -1,5 +1,6 @@
 import { NavLink } from 'react-router-dom';
 import {
+  Home,
   FileText,
   Scale,
   FileCheck,
@@ -18,6 +19,7 @@ interface MenuItem {
 
 // Lista de itens do menu
 const menuItems: MenuItem[] = [
+  { icon: Home, label: 'Dashboard' },
   { icon: FileText, label: 'Processos' },
   { icon: Scale, label: 'Financeiro' },
   { icon: FileCheck, label: 'Modelos' },
@@ -32,7 +34,7 @@ export default function Sidebar() {
     <aside className="w-64 h-screen bg-[#2A3F54] text-white flex flex-col">
       <div className="p-6 flex items-center gap-3">
         <Gavel className="w-8 h-8" />
-        <h1 className="text-xl font-semibold">Sistema Jurídico Pro</h1>
+        <h1 className="text-xl font-semibold">M&D Legal Suite</h1>
       </div>
       <nav className="mt-6 flex-1">
         {menuItems.map((item: MenuItem) => (
