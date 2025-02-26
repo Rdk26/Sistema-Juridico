@@ -34,7 +34,7 @@ export default function Sidebar() {
     <aside className="w-64 h-screen bg-[#2A3F54] text-white flex flex-col">
       <div className="p-6 flex items-center gap-3">
         <Gavel className="w-8 h-8" />
-        <h1 className="text-xl font-semibold">M&D Legal Suite</h1>
+        <h1 className="text-xl font-semibold">MD Legal Suite</h1>
       </div>
       <nav className="mt-6 flex-1">
         {menuItems.map((item: MenuItem) => (
