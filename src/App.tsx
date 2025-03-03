@@ -10,8 +10,9 @@ import AtividadesPage from './pages/AtividadesPage';
 import ConfiguracoesPage from './pages/ConfiguracoesPage';
 import RelatoriosPage from './pages/RelatoriosPage';
 import SuportePage from './pages/SuportePage';
-import IntimacoesPage from './pages/IntimacoesPage';
-import PessoasPage from './pages/PessoasPage';
+import NotificacoesPage from './pages/NotificacoesPage';
+import ClientesPage from './pages/ClientesPage';
+import PessoalInternoPage from './pages/PessoalInternoPage';
 
 function App() {
   const [isDarkMode, setIsDarkMode] = useState(false);
@@ -31,9 +32,10 @@ function App() {
           <Route path="/Atividades" element={<AtividadesPage />} />
           <Route path="/Configurações" element={<ConfiguracoesPage />} />
           <Route path="/financeiro" element={<FinanceiroPage />} />
-          <Route path="/Intimações" element={<IntimacoesPage />} />
+          <Route path="/Notificações" element={<NotificacoesPage />} />
           <Route path="/Modelos" element={<ModelosPage />} />
-          <Route path="/Pessoas" element={<PessoasPage />} />
+          <Route path="/Clientes" element={<ClientesPage />} />
+          <Route path="/Pessoal Interno" element={<PessoalInternoPage />} />
           <Route path="/processos" element={<ProcessosPage />} />
           <Route path="/Relatórios" element={<RelatoriosPage />} />
           <Route path="/Suporte" element={<SuportePage />} />
