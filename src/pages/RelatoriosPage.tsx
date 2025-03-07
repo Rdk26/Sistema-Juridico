@@ -17,7 +17,7 @@ import {
   ResponsiveContainer,
   Pie
 } from 'recharts';
-import { utils, writeFile } from 'xlsx';
+import ExcelJS from 'exceljs';
 import { saveAs } from 'file-saver';
 
 type RelatorioTipo = 
@@ -78,13 +78,32 @@ export default function RelatoriosPage() {
     }
   };
 
-  const handleExportExcel = () => {
-    const worksheet = utils.json_to_sheet(getDadosRelatorio());
-    const workbook = utils.book_new();
-    utils.book_append_sheet(workbook, worksheet, "Relatório");
-    const excelBuffer = writeFile(workbook, "relatorio.xlsx", { type: "array" });
-    const data = new Blob([excelBuffer], { type: "application/octet-stream" });
-    saveAs(data, "relatorio.xlsx");
+  const handleExportExcel = async () => {
+    const dados = getDadosRelatorio();
+    if (dados.length === 0) return;
+
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet('Relatório');
+
+    // Configurar cabeçalhos
+    const headers = Object.keys(dados[0]);
+    worksheet.columns = headers.map(header => ({
+      header: header.charAt(0).toUpperCase() + header.slice(1),
+      key: header,
+      width: 20
+    }));
+
+    // Adicionar dados
+    dados.forEach(item => {
+      worksheet.addRow(item);
+    });
+
+    // Gerar arquivo
+    const buffer = await workbook.xlsx.writeBuffer();
+    const blob = new Blob([buffer], { 
+      type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' 
+    });
+    saveAs(blob, `relatorio_${tipoRelatorio}.xlsx`);
   };
 
   const renderGrafico = () => {
