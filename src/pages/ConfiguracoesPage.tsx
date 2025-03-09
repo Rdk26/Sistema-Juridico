@@ -11,16 +11,20 @@ import {
   Save,
   Settings,
   Download,
-  FileText 
+  FileText,
+  Sun,
+  Moon,
+  Monitor
 } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/Select';
 import { Switch } from '../components/ui/Switch';
+import { useTheme } from '../components/ThemeProvider';
 
 export default function ConfiguracoesPage() {
+  const { theme, toggleTheme } = useTheme();
   const [notificacoesAtivas, setNotificacoesAtivas] = useState(true);
   const [twoFactorAuth, setTwoFactorAuth] = useState(false);
-  const [tema, setTema] = useState('sistema');
   const [email, setEmail] = useState('advogado@mdlegal.mz');
   const [idioma, setIdioma] = useState('pt');
 
@@ -150,21 +154,24 @@ export default function ConfiguracoesPage() {
           <div className="flex flex-col gap-4">
             <div className="flex items-center gap-4">
               <Button
-                variant={tema === 'claro' ? 'default' : 'outline'}
-                onClick={() => setTema('claro')}
+                variant={theme === 'light' ? 'default' : 'outline'}
+                onClick={() => toggleTheme('light')}
               >
+                <Sun className="w-4 h-4 mr-2" />
                 Tema Claro
               </Button>
               <Button
-                variant={tema === 'escuro' ? 'default' : 'outline'}
-                onClick={() => setTema('escuro')}
+                variant={theme === 'dark' ? 'default' : 'outline'}
+                onClick={() => toggleTheme('dark')}
               >
+                <Moon className="w-4 h-4 mr-2" />
                 Tema Escuro
               </Button>
               <Button
-                variant={tema === 'sistema' ? 'default' : 'outline'}
-                onClick={() => setTema('sistema')}
+                variant={theme === 'system' ? 'default' : 'outline'}
+                onClick={() => toggleTheme('system')}
               >
+                <Monitor className="w-4 h-4 mr-2" />
                 Seguir Sistema
               </Button>
             </div>

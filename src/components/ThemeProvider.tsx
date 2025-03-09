@@ -1,9 +1,9 @@
 import { createContext, useContext, useEffect, useState } from 'react';
 
-type Theme = 'dark' | 'light';
+type Theme = 'dark' | 'light' | 'system';
 type ThemeContextType = {
   theme: Theme;
-  toggleTheme: () => void;
+  toggleTheme: (newTheme?: Theme) => void;
 };
 
 const ThemeContext = createContext<ThemeContextType>({} as ThemeContextType);
@@ -17,11 +17,22 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     return savedTheme ? savedTheme as Theme : systemTheme;
   });
 
-  const toggleTheme = () => {
+  const toggleTheme = (newTheme?: Theme) => {
     setTheme(prev => {
-      const newTheme = prev === 'dark' ? 'light' : 'dark';
-      localStorage.setItem('theme', newTheme);
-      return newTheme;
+      const calculatedTheme = newTheme || (prev === 'dark' ? 'light' : 'dark');
+      
+      if (calculatedTheme === 'system') {
+        localStorage.removeItem('theme');
+        const systemTheme = window.matchMedia('(prefers-color-scheme: dark)').matches 
+          ? 'dark' 
+          : 'light';
+        document.documentElement.classList.toggle('dark', systemTheme === 'dark');
+        return 'system';
+      }
+      
+      localStorage.setItem('theme', calculatedTheme);
+      document.documentElement.classList.toggle('dark', calculatedTheme === 'dark');
+      return calculatedTheme;
     });
   };
 

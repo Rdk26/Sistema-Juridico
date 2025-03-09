@@ -27,11 +27,10 @@ type Metrica = {
 
 // Função de formatação monetária
 const formatarMoeda = (valor: number) => {
-  return new Intl.NumberFormat('pt-MZ', {
-    style: 'currency',
-    currency: 'MZN',
-    minimumFractionDigits: 2
-  }).format(valor);
+  return `${new Intl.NumberFormat('pt-MZ', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
+  }).format(valor)} MT`; // Alterado para MT
 };
 
 export default function FinanceiroPage() {

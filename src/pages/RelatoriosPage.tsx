@@ -1,5 +1,6 @@
 // pages/RelatoriosPage.tsx
 import { useState } from 'react';
+import { FinanceChart } from '../components/FinanceChart';
 import { 
   Download, 
   Calendar,
@@ -125,14 +126,10 @@ export default function RelatoriosPage() {
 
   const formatarValor = (value: number): string => {
     if (tipoRelatorio === 'financeiro') {
-      return new Intl.NumberFormat('pt-MZ', {
-        style: 'currency',
-        currency: 'MZN'
-      }).format(value);
+      return `${new Intl.NumberFormat('pt-MZ').format(value)} MT`;
     }
     return value.toString();
   };
-
   const CardEstatistica = ({ titulo, valor, icone, variacao }: { 
     titulo: string;
     valor: string;
@@ -302,48 +299,8 @@ export default function RelatoriosPage() {
     
     switch(tipoRelatorio) {
       case 'financeiro':
-        return (
-          <BarChart data={dados}>
-            <CartesianGrid strokeDasharray="3 3" />
-            <XAxis 
-              dataKey="mes" 
-              tick={{ fill: '#6b7280' }}
-            />
-            <YAxis 
-              tickFormatter={(value: number) => formatarValor(value)}
-              tick={{ fill: '#6b7280' }}
-            />
-            <Tooltip 
-              formatter={(value: number) => formatarValor(value)}
-              contentStyle={{
-                backgroundColor: '#ffffff',
-                border: '1px solid #e5e7eb',
-                borderRadius: '8px',
-                boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
-              }}
-            />
-            <Legend 
-              formatter={(value) => (
-                <span className="text-gray-600 dark:text-gray-300">
-                  {value}
-                </span>
-              )}
-            />
-            <Bar 
-              dataKey="receita" 
-              fill="#3B82F6" 
-              name="Receita (MT)"
-              radius={[4, 4, 0, 0]}
-            />
-            <Bar 
-              dataKey="despesa" 
-              fill="#EF4444" 
-              name="Despesa (MT)"
-              radius={[4, 4, 0, 0]}
-            />
-          </BarChart>
-        );
-
+        return <FinanceChart />;
+    
       case 'processos-por-status':
         return (
           <RechartsPieChart>
@@ -490,15 +447,12 @@ export default function RelatoriosPage() {
         </h1>
         
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <CardEstatistica
-            titulo="Receita Total"
-            valor={new Intl.NumberFormat('pt-MZ', {
-              style: 'currency',
-              currency: 'MZN'
-            }).format(2456000)}
-            icone={<TrendingUp className="w-6 h-6" />}
-            variacao="+12%"
-          />
+        <CardEstatistica
+  titulo="Receita Total"
+  valor={`${new Intl.NumberFormat('pt-MZ').format(2456000)} MT`}
+  icone={<TrendingUp className="w-6 h-6" />}
+  variacao="+12%"
+/>
           
           <CardEstatistica
             titulo="Processos Ativos"

@@ -30,13 +30,10 @@ export function FinanceChart() {
             <XAxis dataKey="month" />
             <YAxis />
             <Tooltip 
-              formatter={(value) => 
-                new Intl.NumberFormat('pt-MZ', {
-                  style: 'currency',
-                  currency: 'MZN',
-                }).format(value as number)
-              }
-            />
+  formatter={(value) => 
+    `${new Intl.NumberFormat('pt-MZ').format(value as number)} MT`
+  }
+/>
             <Legend />
             <Bar dataKey="receita" fill="#3B82F6" name="Receitas" />
             <Bar dataKey="despesas" fill="#EF4444" name="Despesas" />

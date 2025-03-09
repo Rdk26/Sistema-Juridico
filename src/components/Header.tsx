@@ -9,6 +9,9 @@ export function Header() {
     { label: 'A Receber', value: 'MT 35.000,00' },
     { label: 'Saldo Atual', value: 'MT 28.500,00' },
   ];
+  const handleThemeToggle = () => {
+    toggleTheme(); // Agora funciona sem parâmetros
+  };
 
   return (
     <div className="bg-white dark:bg-gray-800 shadow-sm">
@@ -28,7 +31,7 @@ export function Header() {
             <Bell className="w-5 h-5" />
           </button>
           <button
-            onClick={toggleTheme}
+            onClick={handleThemeToggle} // Usando o novo handler
             className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full"
           >
             {theme === 'dark' ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
