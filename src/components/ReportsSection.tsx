@@ -1,4 +1,4 @@
-import React from 'react';
+
 import { FileText, Calendar, Tag, Filter } from 'lucide-react';
 
 export function ReportsSection() {

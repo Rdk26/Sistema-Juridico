@@ -1,396 +1,336 @@
 // pages/AtividadesPage.tsx
 import { useState, useEffect } from 'react';
-import { 
-  CheckCircle, 
-  AlertTriangle, 
-  Calendar, 
-  Clock, 
+import {
   Plus,
-  ListFilter,
-  GripVertical,
+  Search,
+  Calendar,
+  CheckCircle,
+  AlertTriangle,
+  Clock,
+  Users,
 } from 'lucide-react';
 import { Skeleton } from '../components/Skeleton';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '../components/ui/Dialog';
 import { Input } from '../components/ui/Input';
-import { Textarea } from '../components/ui/Textarea';
-import { DragDropContext, Droppable, Draggable } from 'react-beautiful-dnd';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/Select';
+import { Button } from '../components/ui/Button';
 
 type Atividade = {
   id: number;
-  tipo: 'tarefa' | 'evento' | 'lembrete';
   titulo: string;
+  tipo: 'audiencia' | 'peticao' | 'diligencia' | 'outro';
   descricao: string;
-  data: string;
-  concluida: boolean;
-  prioridade?: 'alta' | 'media' | 'baixa';
+  dataPrevista: string;
+  dataConclusao?: string;
+  status: 'pendente' | 'concluida' | 'atrasada';
+  responsavel: string;
+  prioridade: 'alta' | 'media' | 'baixa';
 };
 
 const atividadesMock: Atividade[] = [
   {
     id: 1,
-    tipo: 'tarefa',
-    titulo: 'Revisar contrato de parceria',
-    descricao: 'Verificar cláusulas do contrato com Empresa Moza Holdings',
-    data: '2024-03-20',
-    concluida: false,
+    titulo: 'Audiência Preliminar',
+    tipo: 'audiencia',
+    descricao: 'Audiência para discussão de preliminares',
+    dataPrevista: '2024-04-15',
+    status: 'pendente',
+    responsavel: 'Carlos Mahumane',
     prioridade: 'alta'
   },
   {
     id: 2,
-    tipo: 'evento',
-    titulo: 'Audiência - Processo 045/2023',
-    descricao: 'Tribunal Judicial da Beira - Secção Cível',
-    data: '2024-03-22',
-    concluida: false
-  },
-  {
-    id: 3,
-    tipo: 'lembrete',
-    titulo: 'Prazo para recurso',
-    descricao: 'Processo 078/2024/STT-N - Vence em 25/03',
-    data: '2024-03-25',
-    concluida: false,
+    titulo: 'Elaboração de Petição',
+    tipo: 'peticao',
+    descricao: 'Petição inicial para ação de divórcio',
+    dataPrevista: '2024-03-28',
+    dataConclusao: '2024-03-25',
+    status: 'concluida',
+    responsavel: 'Ana Mondlane',
     prioridade: 'media'
-  }
+  },
 ];
 
-const getStatusColor = (prioridade?: string) => {
-  switch (prioridade) {
-    case 'alta': return 'bg-red-100 text-red-800 dark:bg-red-900/20';
-    case 'media': return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20';
-    case 'baixa': return 'bg-green-100 text-green-800 dark:bg-green-900/20';
-    default: return 'bg-gray-100 dark:bg-gray-800';
+const getStatusStyle = (status: string) => {
+  switch (status) {
+    case 'concluida': return 'bg-green-100 text-green-800';
+    case 'pendente': return 'bg-yellow-100 text-yellow-800';
+    case 'atrasada': return 'bg-red-100 text-red-800';
+    default: return 'bg-gray-100 text-gray-800';
   }
 };
 
-const getIcone = (tipo: string) => {
-  switch (tipo) {
-    case 'tarefa': return <CheckCircle className="w-5 h-5" />;
-    case 'evento': return <Calendar className="w-5 h-5" />;
-    case 'lembrete': return <AlertTriangle className="w-5 h-5" />;
-    default: return <Clock className="w-5 h-5" />;
+const getPrioridadeStyle = (prioridade: string) => {
+  switch (prioridade) {
+    case 'alta': return 'text-red-600';
+    case 'media': return 'text-yellow-600';
+    default: return 'text-gray-600';
   }
 };
 
 export default function AtividadesPage() {
   const [atividades, setAtividades] = useState<Atividade[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [filtroTipo, setFiltroTipo] = useState<string>('todos');
-  const [filtroStatus, setFiltroStatus] = useState<string>('todos');
-  const [ordenacao, setOrdenacao] = useState<'data' | 'prioridade'>('data');
-  const [paginaAtual, setPaginaAtual] = useState(1);
+  const [filtros, setFiltros] = useState({
+    texto: '',
+    tipo: 'todos',
+    status: 'todos',
+    prioridade: 'todos'
+  });
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [formData, setFormData] = useState<Partial<Atividade>>({});
-  const [modoEdicao, setModoEdicao] = useState(false);
-  const itensPorPagina = 5;
+  const [atividadeEditando, setAtividadeEditando] = useState<Atividade | null>(null);
 
   useEffect(() => {
     setTimeout(() => {
       setAtividades(atividadesMock);
       setIsLoading(false);
-    }, 1200);
+    }, 1000);
   }, []);
 
   const atividadesFiltradas = atividades.filter(atividade => {
-    const matchTipo = filtroTipo === 'todos' || atividade.tipo === filtroTipo;
-    const matchStatus = filtroStatus === 'todos' || 
-      (filtroStatus === 'concluidas' ? atividade.concluida : !atividade.concluida);
-    return matchTipo && matchStatus;
+    const matchesTexto = atividade.titulo.toLowerCase().includes(filtros.texto.toLowerCase()) ||
+      atividade.descricao.toLowerCase().includes(filtros.texto.toLowerCase());
+
+    const matchesTipo = filtros.tipo === 'todos' || atividade.tipo === filtros.tipo;
+    const matchesStatus = filtros.status === 'todos' || atividade.status === filtros.status;
+    const matchesPrioridade = filtros.prioridade === 'todos' || atividade.prioridade === filtros.prioridade;
+
+    return matchesTexto && matchesTipo && matchesStatus && matchesPrioridade;
   });
 
-  const atividadesOrdenadas = [...atividadesFiltradas].sort((a, b) => {
-    if (ordenacao === 'prioridade') {
-      const prioridades = { alta: 3, media: 2, baixa: 1, undefined: 0 };
-      return prioridades[b.prioridade as keyof typeof prioridades] - prioridades[a.prioridade as keyof typeof prioridades];
-    }
-    return new Date(a.data).getTime() - new Date(b.data).getTime();
-  });
-
-  const indexUltimoItem = paginaAtual * itensPorPagina;
-  const atividadesPagina = atividadesOrdenadas.slice(indexUltimoItem - itensPorPagina, indexUltimoItem);
-
-  const handleDragEnd = (result: any) => {
-    if (!result.destination) return;
-    const items = Array.from(atividades);
-    const [reorderedItem] = items.splice(result.source.index, 1);
-    items.splice(result.destination.index, 0, reorderedItem);
-    setAtividades(items);
-  };
-
-  const abrirModalEdicao = (atividade?: Atividade) => {
-    if (atividade) {
-      setFormData(atividade);
-      setModoEdicao(true);
-    } else {
-      setFormData({
-        tipo: 'tarefa',
-        data: new Date().toISOString().split('T')[0]
-      });
-      setModoEdicao(false);
-    }
-    setIsModalOpen(true);
-  };
-
-  const handleSubmit = () => {
-    if (!formData.titulo || !formData.data) return;
-
-    const newActivity: Atividade = {
-      ...formData,
-      id: modoEdicao ? formData.id! : Math.max(...atividades.map(a => a.id), 0) + 1,
-      concluida: formData.concluida || false
-    } as Atividade;
-
-    const novasAtividades = modoEdicao 
-      ? atividades.map(a => a.id === newActivity.id ? newActivity : a)
-      : [...atividades, newActivity];
-
-    setAtividades(novasAtividades);
-    setIsModalOpen(false);
-    setFormData({});
+  const metricas = {
+    total: atividades.length,
+    concluidas: atividades.filter(a => a.status === 'concluida').length,
+    atrasadas: atividades.filter(a => 
+      new Date(a.dataPrevista) < new Date() && a.status !== 'concluida'
+    ).length
   };
 
   return (
     <main className="flex-1 overflow-auto p-6">
       <div className="mb-6 flex items-center justify-between">
         <h1 className="text-3xl font-bold texto-escuro">Gestão de Atividades</h1>
-        <button 
-          className="btn-primary flex items-center gap-2"
-          onClick={() => abrirModalEdicao()}
-        >
-          <Plus className="w-4 h-4" />
+        <Button onClick={() => setIsModalOpen(true)}>
+          <Plus className="w-4 h-4 mr-2" />
           Nova Atividade
-        </button>
+        </Button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-        <select 
-          value={filtroTipo}
-          onChange={(e) => setFiltroTipo(e.target.value)}
-          className="card-juridico p-3"
-        >
-          <option value="todos">Todos os Tipos</option>
-          <option value="tarefa">Tarefas</option>
-          <option value="evento">Eventos</option>
-          <option value="lembrete">Lembretes</option>
-        </select>
+      {/* Filtros */}
+      <div className="mb-6 grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="relative flex items-center">
+          <Search className="absolute left-3 w-5 h-5 text-gray-400" />
+          <Input
+            placeholder="Pesquisar atividades..."
+            value={filtros.texto}
+            onChange={e => setFiltros(prev => ({ ...prev, texto: e.target.value }))}
+            className="pl-10"
+          />
+        </div>
 
-        <select 
-          value={filtroStatus}
-          onChange={(e) => setFiltroStatus(e.target.value)}
-          className="card-juridico p-3"
+        <Select
+          value={filtros.tipo}
+          onValueChange={value => setFiltros(prev => ({ ...prev, tipo: value }))}
         >
-          <option value="todos">Todos os Status</option>
-          <option value="pendentes">Pendentes</option>
-          <option value="concluidas">Concluídas</option>
-        </select>
+          <SelectTrigger>
+            <SelectValue placeholder="Todos Tipos" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="todos">Todos Tipos</SelectItem>
+            <SelectItem value="audiencia">Audiência</SelectItem>
+            <SelectItem value="peticao">Petição</SelectItem>
+            <SelectItem value="diligencia">Diligência</SelectItem>
+            <SelectItem value="outro">Outros</SelectItem>
+          </SelectContent>
+        </Select>
 
-        <select
-          value={ordenacao}
-          onChange={(e) => setOrdenacao(e.target.value as any)}
-          className="card-juridico p-3"
+        <Select
+          value={filtros.status}
+          onValueChange={value => setFiltros(prev => ({ ...prev, status: value }))}
         >
-          <option value="data">Ordenar por Data</option>
-          <option value="prioridade">Ordenar por Prioridade</option>
-        </select>
+          <SelectTrigger>
+            <SelectValue placeholder="Todos Status" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="todos">Todos Status</SelectItem>
+            <SelectItem value="pendente">Pendente</SelectItem>
+            <SelectItem value="concluida">Concluída</SelectItem>
+            <SelectItem value="atrasada">Atrasada</SelectItem>
+          </SelectContent>
+        </Select>
 
-        <div className="card-juridico p-3 flex items-center gap-2">
-          <ListFilter className="w-5 h-5" />
-          <span>Itens por página: {itensPorPagina}</span>
+        <Select
+          value={filtros.prioridade}
+          onValueChange={value => setFiltros(prev => ({ ...prev, prioridade: value }))}
+        >
+          <SelectTrigger>
+            <SelectValue placeholder="Todas Prioridades" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="todos">Todas Prioridades</SelectItem>
+            <SelectItem value="alta">Alta</SelectItem>
+            <SelectItem value="media">Média</SelectItem>
+            <SelectItem value="baixa">Baixa</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
+      {/* Estatísticas Rápidas */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+        <div className="card-juridico p-4 flex items-center gap-4">
+          <CheckCircle className="w-8 h-8 text-green-600" />
+          <div>
+            <p className="text-sm">Atividades Concluídas</p>
+            <p className="text-2xl font-bold">{metricas.concluidas}</p>
+          </div>
+        </div>
+
+        <div className="card-juridico p-4 flex items-center gap-4">
+          <AlertTriangle className="w-8 h-8 text-yellow-600" />
+          <div>
+            <p className="text-sm">Atividades Pendentes</p>
+            <p className="text-2xl font-bold">{atividadesFiltradas.length - metricas.concluidas}</p>
+          </div>
+        </div>
+
+        <div className="card-juridico p-4 flex items-center gap-4">
+          <Clock className="w-8 h-8 text-red-600" />
+          <div>
+            <p className="text-sm">Atividades Atrasadas</p>
+            <p className="text-2xl font-bold">{metricas.atrasadas}</p>
+          </div>
         </div>
       </div>
 
-      <DragDropContext onDragEnd={handleDragEnd}>
-        <Droppable droppableId="atividades">
-          {(provided) => (
-            <div 
-              {...provided.droppableProps}
-              ref={provided.innerRef}
-              className="grid grid-cols-1 gap-4"
-            >
-              {isLoading ? (
-                <div className="space-y-4">
-                  {[...Array(3)].map((_, index) => (
-                    <Skeleton key={index} className="h-24 w-full" />
-                  ))}
+      {/* Lista de Atividades */}
+      <div className="space-y-4">
+        {isLoading ? (
+          [...Array(5)].map((_, index) => (
+            <Skeleton key={index} className="h-16 w-full" />
+          ))
+        ) : (
+          atividadesFiltradas.map(atividade => (
+            <div key={atividade.id} className="card-juridico p-4 hover:shadow-lg transition-shadow">
+              <div className="flex items-start justify-between">
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className={`px-2 py-1 rounded-full text-sm ${getStatusStyle(atividade.status)}`}>
+                      {atividade.status.toUpperCase()}
+                    </span>
+                    <span className={`text-sm ${getPrioridadeStyle(atividade.prioridade)}`}>
+                      {atividade.prioridade.toUpperCase()}
+                    </span>
+                  </div>
+                  <h3 className="font-semibold">{atividade.titulo}</h3>
+                  <p className="text-sm text-gray-600">{atividade.descricao}</p>
+                  <div className="flex items-center gap-4 mt-2">
+                    <div className="flex items-center gap-1">
+                      <Calendar className="w-4 h-4" />
+                      <span className="text-sm">
+                        {new Date(atividade.dataPrevista).toLocaleDateString('pt-MZ')}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <Users className="w-4 h-4" />
+                      <span className="text-sm">{atividade.responsavel}</span>
+                    </div>
+                  </div>
                 </div>
-              ) : (
-                atividadesPagina.map((atividade, index) => (
-                  <Draggable 
-                    key={atividade.id} 
-                    draggableId={atividade.id.toString()} 
-                    index={index}
-                  >
-                    {(provided) => (
-                      <div
-                        ref={provided.innerRef}
-                        {...provided.draggableProps}
-                        className="card-juridico p-6 relative"
-                      >
-                        <div 
-                          {...provided.dragHandleProps}
-                          className="absolute left-2 top-1/2 -translate-y-1/2"
-                        >
-                          <GripVertical className="w-4 h-4 text-gray-400" />
-                        </div>
-                        
-                        <div className="flex items-start justify-between gap-4 ml-4">
-                          <div className="flex-1">
-                            <div className="flex items-center gap-3 mb-2">
-                              <div className={`p-2 rounded-lg ${getStatusColor(atividade.prioridade)}`}>
-                                {getIcone(atividade.tipo)}
-                              </div>
-                              <h3 className="text-lg font-semibold texto-escuro">
-                                {atividade.titulo}
-                              </h3>
-                              {atividade.prioridade && (
-                                <span className={`px-2.5 py-0.5 rounded-full text-xs ${getStatusColor(atividade.prioridade)}`}>
-                                  {atividade.prioridade.toUpperCase()}
-                                </span>
-                              )}
-                            </div>
-                            <p className="text-gray-600 dark:text-gray-300 text-sm mb-2">
-                              {atividade.descricao}
-                            </p>
-                            <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
-                              <Clock className="w-4 h-4" />
-                              <span>{new Date(atividade.data).toLocaleDateString('pt-MZ')}</span>
-                            </div>
-                          </div>
-                          
-                          <div className="flex flex-col items-end gap-2">
-                            <button
-                              onClick={() => abrirModalEdicao(atividade)}
-                              className="text-sm text-primary hover:underline"
-                            >
-                              Editar
-                            </button>
-                            <span className={`px-2.5 py-0.5 rounded-full text-xs ${
-                              atividade.concluida 
-                                ? 'bg-green-100 text-green-800 dark:bg-green-900/20'
-                                : 'bg-gray-100 dark:bg-gray-800'
-                            }`}>
-                              {atividade.concluida ? 'Concluída' : 'Pendente'}
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-                    )}
-                  </Draggable>
-                ))
-              )}
-              {provided.placeholder}
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setAtividadeEditando(atividade);
+                    setIsModalOpen(true);
+                  }}
+                >
+                  Editar
+                </Button>
+              </div>
             </div>
-          )}
-        </Droppable>
-      </DragDropContext>
-
-      <div className="flex justify-center gap-2 mt-6">
-        {Array.from({ length: Math.ceil(atividadesOrdenadas.length / itensPorPagina) }).map((_, index) => (
-          <button
-            key={index}
-            className={`px-3 py-1 rounded-md ${
-              paginaAtual === index + 1 
-                ? 'bg-primary text-white' 
-                : 'bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700'
-            }`}
-            onClick={() => setPaginaAtual(index + 1)}
-          >
-            {index + 1}
-          </button>
-        ))}
+          ))
+        )}
       </div>
 
+      {/* Modal de Edição */}
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
         <DialogContent className="sm:max-w-[600px]">
           <DialogHeader>
             <DialogTitle>
-              {modoEdicao ? 'Editar Atividade' : 'Nova Atividade'}
+              {atividadeEditando ? 'Editar Atividade' : 'Nova Atividade'}
             </DialogTitle>
           </DialogHeader>
-          
-          <div className="grid gap-4 py-4">
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Título *</label>
-              <Input
-                value={formData.titulo || ''}
-                onChange={(e) => setFormData({...formData, titulo: e.target.value})}
-              />
+
+          <div className="space-y-4">
+            <Input
+              label="Título da Atividade *"
+              value={atividadeEditando?.titulo || ''}
+              onChange={e => setAtividadeEditando(prev => ({ ...prev!, titulo: e.target.value }))}
+            />
+
+            <div className="grid grid-cols-2 gap-4">
+              <Select
+                value={atividadeEditando?.tipo || 'audiencia'}
+                onValueChange={value => setAtividadeEditando(prev => ({ ...prev!, tipo: value as any }))}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Tipo de Atividade" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="audiencia">Audiência</SelectItem>
+                  <SelectItem value="peticao">Petição</SelectItem>
+                  <SelectItem value="diligencia">Diligência</SelectItem>
+                  <SelectItem value="outro">Outros</SelectItem>
+                </SelectContent>
+              </Select>
+
+              <Select
+                value={atividadeEditando?.prioridade || 'media'}
+                onValueChange={value => setAtividadeEditando(prev => ({ ...prev!, prioridade: value as any }))}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Prioridade" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="alta">Alta</SelectItem>
+                  <SelectItem value="media">Média</SelectItem>
+                  <SelectItem value="baixa">Baixa</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
 
+            <Input
+              label="Data Prevista *"
+              type="date"
+              value={atividadeEditando?.dataPrevista || ''}
+              onChange={e => setAtividadeEditando(prev => ({ ...prev!, dataPrevista: e.target.value }))}
+            />
+
+            <Input
+              label="Responsável *"
+              value={atividadeEditando?.responsavel || ''}
+              onChange={e => setAtividadeEditando(prev => ({ ...prev!, responsavel: e.target.value }))}
+            />
+
             <div className="space-y-2">
-              <label className="text-sm font-medium">Descrição</label>
-              <Textarea
-                value={formData.descricao || ''}
-                onChange={(e) => setFormData({...formData, descricao: e.target.value})}
+              <label className="text-sm font-medium leading-none">
+                Descrição
+              </label>
+              <textarea
                 rows={3}
+                value={atividadeEditando?.descricao || ''}
+                onChange={e => setAtividadeEditando(prev => ({ ...prev!, descricao: e.target.value }))}
+                className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
               />
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Tipo *</label>
-                <select
-                  value={formData.tipo || 'tarefa'}
-                  onChange={(e) => setFormData({...formData, tipo: e.target.value as any})}
-                  className="card-juridico p-3 w-full"
-                >
-                  <option value="tarefa">Tarefa</option>
-                  <option value="evento">Evento</option>
-                  <option value="lembrete">Lembrete</option>
-                </select>
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Data *</label>
-                <input
-                  type="date"
-                  value={formData.data || ''}
-                  onChange={(e) => setFormData({...formData, data: e.target.value})}
-                  className="card-juridico p-3 w-full"
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Prioridade</label>
-                <select
-                  value={formData.prioridade || ''}
-                  onChange={(e) => setFormData({
-                    ...formData, 
-                    prioridade: e.target.value as any || undefined
-                  })}
-                  className="card-juridico p-3 w-full"
-                >
-                  <option value="">Sem prioridade</option>
-                  <option value="alta">Alta</option>
-                  <option value="media">Média</option>
-                  <option value="baixa">Baixa</option>
-                </select>
-              </div>
-
-              <div className="space-y-2 flex items-center gap-4 mt-4">
-                <label className="flex items-center gap-2">
-                  <input
-                    type="checkbox"
-                    checked={formData.concluida || false}
-                    onChange={(e) => setFormData({...formData, concluida: e.target.checked})}
-                    className="w-4 h-4"
-                  />
-                  <span className="text-sm">Concluída</span>
-                </label>
-              </div>
             </div>
           </div>
 
           <DialogFooter>
-            <button 
-              className="btn-primary"
-              onClick={handleSubmit}
-              disabled={!formData.titulo || !formData.data}
-            >
-              {modoEdicao ? 'Salvar Alterações' : 'Criar Atividade'}
-            </button>
+            <Button variant="outline" onClick={() => setIsModalOpen(false)}>
+              Cancelar
+            </Button>
+            <Button>
+              {atividadeEditando ? 'Salvar Alterações' : 'Criar Atividade'}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
