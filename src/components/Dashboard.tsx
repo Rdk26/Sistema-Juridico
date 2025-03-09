@@ -1,18 +1,12 @@
-
 import { Header } from './Header';
 import { ProcessTable } from './ProcessTable';
 import { FinanceChart } from './FinanceChart';
 import { ReportsSection } from './ReportsSection';
 
-type DashboardProps = {
-  onThemeToggle: () => void; 
-};
-
-
-export default function Dashboard({ onThemeToggle }: DashboardProps) {
+export default function Dashboard() {
   return (
     <main className="flex-1 overflow-auto">
-      <Header onThemeToggle={onThemeToggle} />
+      <Header />
       <div className="p-6 space-y-6">
         <ProcessTable />
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

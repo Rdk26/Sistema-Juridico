@@ -1,4 +1,4 @@
-import { useState } from 'react';
+
 import { Routes, Route } from 'react-router-dom';
 import { ThemeProvider } from './components/ThemeProvider';
 import Sidebar from './components/Sidebar';
@@ -15,20 +15,13 @@ import ClientesPage from './pages/ClientesPage';
 import PessoalInternoPage from './pages/PessoalInternoPage';
 
 function App() {
-  const [isDarkMode, setIsDarkMode] = useState(false);
-
   return (
     <ThemeProvider>
       <div className="flex h-screen bg-gray-50 dark:bg-gray-900">
         <Sidebar />
         <Routes>
-          <Route 
-            path="/" 
-            element={<Dashboard onThemeToggle={() => setIsDarkMode(!isDarkMode)} />} 
-          />
-          <Route path="/Dashboard" element={<Dashboard onThemeToggle={function (): void {
-            throw new Error('Function not implemented.');
-          } } />} />
+          <Route path="/" element={<Dashboard />} />
+          <Route path="/Dashboard" element={<Dashboard />} />
           <Route path="/Atividades" element={<AtividadesPage />} />
           <Route path="/Configurações" element={<ConfiguracoesPage />} />
           <Route path="/financeiro" element={<FinanceiroPage />} />
@@ -39,7 +32,6 @@ function App() {
           <Route path="/processos" element={<ProcessosPage />} />
           <Route path="/Relatórios" element={<RelatoriosPage />} />
           <Route path="/Suporte" element={<SuportePage />} />
-
         </Routes>
       </div>
     </ThemeProvider>
