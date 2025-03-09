@@ -1,12 +1,27 @@
 // pages/PessoalInternoPage.tsx
 import { useState, useEffect } from 'react';
-import { Plus, Search, User, Briefcase, Phone, Calendar, BadgeInfo, FileDown,} from 'lucide-react';
+import { 
+  Plus, 
+  Search, 
+  Briefcase, 
+  Phone, 
+  Calendar, 
+  Table, 
+  LayoutGrid,
+  PieChart as PieChartIcon,
+  Users,
+  TrendingUp,
+  Upload,
+  Trash2,
+  FileText
+} from 'lucide-react';
 import { Skeleton } from '../components/Skeleton';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '../components/ui/Dialog';
 import { Input } from '../components/ui/Input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/Select';
-import ExcelJS from 'exceljs';
-import { saveAs } from 'file-saver';
+import { Button } from '../components/ui/Button';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '../components/ui/Tabs';
+import { ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 
 type Funcionario = {
   id: number;
@@ -17,46 +32,59 @@ type Funcionario = {
   contacto: string;
   status: 'ativo' | 'inativo';
   historicoCargos: HistoricoCargo[];
+  documentos: Documento[];
+  nif?: string;
 };
-type HistoricoCargo = {
-    id: number;
-    cargo: string;
-    departamento: string;
-    dataInicio: string;
-    dataFim: string | null;
-  };
 
-// Dados mockados com exemplos moçambicanos
+type HistoricoCargo = {
+  id: number;
+  cargo: string;
+  departamento: string;
+  dataInicio: string;
+  dataFim: string | null;
+};
+
+type Documento = {
+  nome: string;
+  url: string;
+  tipo: string;
+};
+
+const departamentos = ['Administração', 'Jurídico', 'Recursos Humanos', 'TI', 'Financeiro'];
+const coresDepartamentos = ['#3B82F6', '#10B981', '#F59E0B', '#6366F1', '#8B5CF6'];
+
 const funcionariosMock: Funcionario[] = [
-    {
-      id: 1,
-      nome: 'Carlos Mahumane',
-      cargo: 'Gestor de Operações',
-      departamento: 'Administração',
-      dataContratacao: '2020-03-15',
-      contacto: '+258 84 123 4567',
-      status: 'ativo',
-      historicoCargos: [
-        {
-          id: 1,
-          cargo: 'Assistente Administrativo',
-          departamento: 'Administração',
-          dataInicio: '2018-01-01',
-          dataFim: '2020-03-14'
-        }
-      ]
-    },
-    {
-      id: 2,
-      nome: 'Ana Maria Mondlane',
-      cargo: 'Assistente Jurídica',
-      departamento: 'Departamento Legal',
-      dataContratacao: '2022-08-01',
-      contacto: '+258 82 987 6543',
-      status: 'ativo',
-      historicoCargos: []
-    },
-  ];
+  {
+    id: 1,
+    nome: 'Carlos Mahumane',
+    cargo: 'Gestor de Operações',
+    departamento: 'Administração',
+    dataContratacao: '2020-03-15',
+    contacto: '+258 84 123 4567',
+    status: 'ativo',
+    historicoCargos: [
+      {
+        id: 1,
+        cargo: 'Assistente Administrativo',
+        departamento: 'Administração',
+        dataInicio: '2018-01-01',
+        dataFim: '2020-03-14'
+      }
+    ],
+    documentos: [],
+  },
+  {
+    id: 2,
+    nome: 'Ana Maria Mondlane',
+    cargo: 'Assistente Jurídica',
+    departamento: 'Jurídico',
+    dataContratacao: '2022-08-01',
+    contacto: '+258 82 987 6543',
+    status: 'ativo',
+    historicoCargos: [],
+    documentos: [],
+  },
+];
 
 const getStatusColor = (status: string) => {
   return status === 'ativo' 
@@ -67,9 +95,14 @@ const getStatusColor = (status: string) => {
 export default function PessoalInternoPage() {
   const [funcionarios, setFuncionarios] = useState<Funcionario[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [filtro, setFiltro] = useState('');
+  const [visualizacao, setVisualizacao] = useState<'tabela' | 'cards'>('tabela');
+  const [filtroTexto, setFiltroTexto] = useState('');
+  const [filtroDepartamento, setFiltroDepartamento] = useState('todos');
+  const [filtroStatus, setFiltroStatus] = useState('todos');
+  const [filtroDataContratacao, setFiltroDataContratacao] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [funcionarioEditando, setFuncionarioEditando] = useState<Funcionario | null>(null);
+  const [abaAtiva, setAbaAtiva] = useState('dados');
 
   useEffect(() => {
     setTimeout(() => {
@@ -78,113 +111,225 @@ export default function PessoalInternoPage() {
     }, 1000);
   }, []);
 
-  const funcionariosFiltrados = funcionarios.filter(funcionario =>
-    funcionario.nome.toLowerCase().includes(filtro.toLowerCase()) ||
-    funcionario.cargo.toLowerCase().includes(filtro.toLowerCase()) ||
-    funcionario.departamento.toLowerCase().includes(filtro.toLowerCase())
-  );
+  const funcionariosFiltrados = funcionarios.filter(funcionario => {
+    const correspondeTexto = funcionario.nome.toLowerCase().includes(filtroTexto.toLowerCase()) ||
+      funcionario.cargo.toLowerCase().includes(filtroTexto.toLowerCase()) ||
+      funcionario.departamento.toLowerCase().includes(filtroTexto.toLowerCase());
 
-  const handleSubmit = (funcionario: Funcionario) => {
+    const correspondeDepartamento = filtroDepartamento === 'todos' || funcionario.departamento === filtroDepartamento;
+    const correspondeStatus = filtroStatus === 'todos' || funcionario.status === filtroStatus;
+    const correspondeData = !filtroDataContratacao || funcionario.dataContratacao === filtroDataContratacao;
+
+    return correspondeTexto && correspondeDepartamento && correspondeStatus && correspondeData;
+  });
+
+  const handleSubmeter = (funcionario: Funcionario) => {
     const novoFuncionario = {
       ...funcionario,
       dataContratacao: funcionario.id ? funcionario.dataContratacao : new Date().toISOString().split('T')[0]
     };
 
     if (novoFuncionario.id) {
-      setFuncionarios(prev => prev.map(f => f.id === novoFuncionario.id ? novoFuncionario : f));
+      setFuncionarios(anterior => anterior.map(f => f.id === novoFuncionario.id ? novoFuncionario : f));
     } else {
-      setFuncionarios(prev => [...prev, { 
+      setFuncionarios(anterior => [...anterior, { 
         ...novoFuncionario, 
-        id: Math.max(...prev.map(f => f.id), 0) + 1 
+        id: Math.max(...anterior.map(f => f.id), 0) + 1 
       }]);
     }
     setIsModalOpen(false);
     setFuncionarioEditando(null);
   };
-  const handleExportExcel = async () => {
-    const workbook = new ExcelJS.Workbook();
-    const worksheet = workbook.addWorksheet('Funcionários');
 
-    // Configurar cabeçalhos
-    worksheet.columns = [
-      { header: 'Nome', key: 'nome', width: 25 },
-      { header: 'Cargo', key: 'cargo', width: 25 },
-      { header: 'Departamento', key: 'departamento', width: 20 },
-      { header: 'Contacto', key: 'contacto', width: 15 },
-      { header: 'Status', key: 'status', width: 10 },
-      { header: 'Data Contratação', key: 'dataContratacao', width: 15 },
-      { header: 'Cargos Anteriores', key: 'historico', width: 40 }
-    ];
-
-    // Formatar cabeçalhos
-    worksheet.getRow(1).font = { bold: true };
-    worksheet.getRow(1).border = {
-      bottom: { style: 'thin' }
-    };
-
-    // Adicionar dados
-    funcionarios.forEach(funcionario => {
-      worksheet.addRow({
-        nome: funcionario.nome,
-        cargo: funcionario.cargo,
-        departamento: funcionario.departamento,
-        contacto: funcionario.contacto,
-        status: funcionario.status.toUpperCase(),
-        dataContratacao: new Date(funcionario.dataContratacao).toLocaleDateString('pt-MZ'),
-        historico: funcionario.historicoCargos
-          .map(c => `${c.cargo} (${new Date(c.dataInicio).toLocaleDateString('pt-MZ')} - ${c.dataFim ? new Date(c.dataFim).toLocaleDateString('pt-MZ') : 'Atual'})`)
-          .join('\n')
-      });
-    });
-
-    // Gerar arquivo
-    const buffer = await workbook.xlsx.writeBuffer();
-    const blob = new Blob([buffer], { 
-      type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' 
-    });
-    saveAs(blob, 'funcionarios.xlsx');
+  const handleUploadDocumento = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const arquivos = event.target.files;
+    if (arquivos && arquivos.length > 0) {
+      const novosDocumentos = Array.from(arquivos).map(arquivo => ({
+        nome: arquivo.name,
+        url: URL.createObjectURL(arquivo),
+        tipo: arquivo.type
+      }));
+      
+      setFuncionarioEditando(anterior => anterior ? {
+        ...anterior,
+        documentos: [...anterior.documentos, ...novosDocumentos]
+      } : null);
+    }
   };
 
+  const validarNIF = (nif: string) => {
+    return /^\d{9}$/.test(nif);
+  };
+
+  const formularioValido = Boolean(
+    funcionarioEditando?.nome &&
+    funcionarioEditando?.cargo &&
+    funcionarioEditando?.departamento &&
+    funcionarioEditando?.contacto &&
+    validarNIF(funcionarioEditando?.nif || '')
+  );
+
   return (
-<main className="flex-1 overflow-auto p-6">
-      {/* Cabeçalho com botão de exportação */}
-      <div className="mb-6 flex items-center justify-between gap-4">
+    <main className="flex-1 overflow-auto p-6">
+      <div className="mb-6 flex items-center justify-between">
         <h1 className="text-3xl font-bold texto-escuro">Pessoal Interno</h1>
-        <div className="flex gap-3">
-          <button
-            onClick={handleExportExcel}
-            className="btn-primary flex items-center gap-2"
-          >
-            <FileDown className="w-4 h-4" />
-            Exportar Excel
-          </button>
-          <button 
-            className="btn-primary flex items-center gap-2"
-            onClick={() => {
-              setFuncionarioEditando(null);
-              setIsModalOpen(true);
-            }}
-          >
-            <Plus className="w-4 h-4" />
-            Novo Funcionário
-          </button>
+        <Button onClick={() => {
+          setFuncionarioEditando(null);
+          setIsModalOpen(true);
+        }}>
+          <Plus className="w-4 h-4 mr-2" />
+          Novo Funcionário
+        </Button>
+      </div>
+
+      <div className="mb-6 grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="relative flex items-center">
+          <Search className="absolute left-3 w-5 h-5 text-gray-400" />
+          <Input
+            placeholder="Pesquisar..."
+            value={filtroTexto}
+            onChange={(evento) => setFiltroTexto(evento.target.value)}
+            className="pl-10"
+          />
+        </div>
+
+        <Select value={filtroDepartamento} onValueChange={setFiltroDepartamento}>
+          <SelectTrigger>
+            <SelectValue placeholder="Todos Departamentos" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="todos">Todos Departamentos</SelectItem>
+            {departamentos.map(departamento => (
+              <SelectItem key={departamento} value={departamento}>{departamento}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
+        <Select value={filtroStatus} onValueChange={setFiltroStatus}>
+          <SelectTrigger>
+            <SelectValue placeholder="Todos Status" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="todos">Todos Status</SelectItem>
+            <SelectItem value="ativo">Ativo</SelectItem>
+            <SelectItem value="inativo">Inativo</SelectItem>
+          </SelectContent>
+        </Select>
+
+        <Input
+          type="date"
+          value={filtroDataContratacao}
+          onChange={(evento) => setFiltroDataContratacao(evento.target.value)}
+          placeholder="Filtrar por data"
+        />
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+        <div className="card-juridico p-4">
+          <div className="flex items-center gap-3">
+            <Users className="w-6 h-6 text-primary" />
+            <div>
+              <p className="text-sm">Total de Funcionários</p>
+              <p className="text-2xl font-bold">{funcionarios.length}</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="card-juridico p-4">
+          <div className="flex items-center gap-3">
+            <TrendingUp className="w-6 h-6 text-green-600" />
+            <div>
+              <p className="text-sm">Taxa de Rotatividade</p>
+              <p className="text-2xl font-bold">12%</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="card-juridico p-4">
+          <div className="flex items-center gap-3">
+            <PieChartIcon className="w-6 h-6 text-blue-600" />
+            <div className="flex-1">
+              <p className="text-sm mb-2">Distribuição por Departamento</p>
+              <ResponsiveContainer width="100%" height={100}>
+                <PieChart>
+                  <Pie
+                    data={departamentos.map((departamento) => ({
+                      name: departamento,
+                      value: funcionarios.filter(f => f.departamento === departamento).length
+                    }))}
+                    dataKey="value"
+                    nameKey="name"
+                    cx="50%"
+                    cy="50%"
+                    outerRadius={30}
+                  >
+                    {departamentos.map((_, indice) => (
+                      <Cell key={indice} fill={coresDepartamentos[indice]} />
+                    ))}
+                  </Pie>
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
         </div>
       </div>
 
-      <div className="mb-6 card-juridico p-4 flex items-center gap-3">
-        <Search className="w-5 h-5 text-gray-400" />
-        <Input
-          placeholder="Pesquisar por nome, cargo ou departamento..."
-          value={filtro}
-          onChange={(e) => setFiltro(e.target.value)}
-          className="flex-1 border-0 px-3 py-2"
-        />
+      <div className="mb-4 flex gap-2">
+        <Button 
+          variant={visualizacao === 'tabela' ? 'default' : 'outline'} 
+          onClick={() => setVisualizacao('tabela')}
+        >
+          <Table className="w-4 h-4 mr-2" />
+          Visualização em Tabela
+        </Button>
+        <Button 
+          variant={visualizacao === 'cards' ? 'default' : 'outline'} 
+          onClick={() => setVisualizacao('cards')}
+        >
+          <LayoutGrid className="w-4 h-4 mr-2" />
+          Visualização em Cards
+        </Button>
       </div>
 
       {isLoading ? (
         <div className="space-y-4">
-          {[...Array(5)].map((_, index) => (
-            <Skeleton key={index} className="h-16 w-full" />
+          {[...Array(5)].map((_, indice) => (
+            <Skeleton key={indice} className="h-16 w-full" />
+          ))}
+        </div>
+      ) : visualizacao === 'cards' ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+          {funcionariosFiltrados.map(funcionario => (
+            <div key={funcionario.id} className="card-juridico p-4 hover:shadow-lg transition-shadow">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center">
+                  {funcionario.nome[0]}
+                </div>
+                <div>
+                  <h3 className="font-semibold">{funcionario.nome}</h3>
+                  <p className="text-sm text-gray-500">{funcionario.cargo}</p>
+                </div>
+              </div>
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <Briefcase className="w-4 h-4" />
+                  <span>{funcionario.departamento}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Phone className="w-4 h-4" />
+                  <span>{funcionario.contacto}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Calendar className="w-4 h-4" />
+                  <span>Contratação: {new Date(funcionario.dataContratacao).toLocaleDateString('pt-MZ')}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className={`px-2.5 py-0.5 rounded-full text-xs ${getStatusColor(funcionario.status)}`}>
+                    {funcionario.status.charAt(0).toUpperCase() + funcionario.status.slice(1)}
+                  </span>
+                </div>
+              </div>
+            </div>
           ))}
         </div>
       ) : (
@@ -209,39 +354,14 @@ export default function PessoalInternoPage() {
                   setIsModalOpen(true);
                 }}
               >
-                <td>
-                  <div className="flex items-center gap-3">
-                    <User className="w-5 h-5 text-primary" />
-                    {funcionario.nome}
-                  </div>
-                </td>
-                <td>
-                  <div className="flex items-center gap-2">
-                    <Briefcase className="w-4 h-4" />
-                    {funcionario.cargo}
-                  </div>
-                </td>
-                <td>
-                  <div className="flex items-center gap-2">
-                    <BadgeInfo className="w-4 h-4" />
-                    {funcionario.departamento}
-                  </div>
-                </td>
-                <td>
-                  <div className="flex items-center gap-2">
-                    <Calendar className="w-4 h-4" />
-                    {new Date(funcionario.dataContratacao).toLocaleDateString('pt-MZ')}
-                  </div>
-                </td>
-                <td>
-                  <div className="flex items-center gap-2">
-                    <Phone className="w-4 h-4" />
-                    {funcionario.contacto}
-                  </div>
-                </td>
+                <td>{funcionario.nome}</td>
+                <td>{funcionario.cargo}</td>
+                <td>{funcionario.departamento}</td>
+                <td>{new Date(funcionario.dataContratacao).toLocaleDateString('pt-MZ')}</td>
+                <td>{funcionario.contacto}</td>
                 <td>
                   <span className={`px-2.5 py-0.5 rounded-full text-xs ${getStatusColor(funcionario.status)}`}>
-                    {funcionario.status.charAt(0).toUpperCase() + funcionario.status.slice(1)}
+                    {funcionario.status.toUpperCase()}
                   </span>
                 </td>
               </tr>
@@ -250,163 +370,190 @@ export default function PessoalInternoPage() {
         </table>
       )}
 
-<Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
+      <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
         <DialogContent className="sm:max-w-[800px]">
           <DialogHeader>
             <DialogTitle>
               {funcionarioEditando ? 'Editar Funcionário' : 'Novo Funcionário'}
             </DialogTitle>
           </DialogHeader>
-          
-          <div className="grid gap-4 py-4">
-            <Input
-              label="Nome Completo *"
-              value={funcionarioEditando?.nome || ''}
-              onChange={(e) => setFuncionarioEditando(prev => ({
-                ...(prev || {
-                  id: 0,
-                  nome: '',
-                  cargo: '',
-                  departamento: '',
-                  dataContratacao: '',
-                  contacto: '',
-                  status: 'ativo',
-                  historicoCargos: []
-                }),
-                nome: e.target.value
-              }))}
-            />
 
-            <div className="grid grid-cols-2 gap-4">
-              <Input
-                label="Cargo *"
-                value={funcionarioEditando?.cargo || ''}
-                onChange={(e) => setFuncionarioEditando(prev => ({
-                  ...(prev || {
-                    id: 0,
-                    nome: '',
-                    cargo: '',
-                    departamento: '',
-                    dataContratacao: '',
-                    contacto: '',
-                    status: 'ativo',
-                    historicoCargos: []
-                  }),
-                  cargo: e.target.value
-                }))}
-              />
+          <Tabs value={abaAtiva} onValueChange={setAbaAtiva}>
+            <TabsList className="grid grid-cols-3">
+              <TabsTrigger value="dados">Dados Básicos</TabsTrigger>
+              <TabsTrigger value="historico">Histórico</TabsTrigger>
+              <TabsTrigger value="documentos">Documentos</TabsTrigger>
+            </TabsList>
 
-              <Input
-                label="Departamento *"
-                value={funcionarioEditando?.departamento || ''}
-                onChange={(e) => setFuncionarioEditando(prev => ({
-                  ...(prev || {
-                    id: 0,
-                    nome: '',
-                    cargo: '',
-                    departamento: '',
-                    dataContratacao: '',
-                    contacto: '',
-                    status: 'ativo',
-                    historicoCargos: []
-                  }),
-                  departamento: e.target.value
-                }))}
-              />
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <Input
-                label="Contacto *"
-                value={funcionarioEditando?.contacto || ''}
-                onChange={(e) => setFuncionarioEditando(prev => ({
-                  ...(prev || {
-                    id: 0,
-                    nome: '',
-                    cargo: '',
-                    departamento: '',
-                    dataContratacao: '',
-                    contacto: '',
-                    status: 'ativo',
-                    historicoCargos: []
-                  }),
-                  contacto: e.target.value
-                }))}
-              />
-
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Status *</label>
-                <Select
-                  value={funcionarioEditando?.status || 'ativo'}
-                  onValueChange={(value: 'ativo' | 'inativo') => setFuncionarioEditando(prev => ({
-                    ...(prev || {
-                      id: 0,
-                      nome: '',
-                      cargo: '',
-                      departamento: '',
-                      dataContratacao: '',
-                      contacto: '',
-                      status: 'ativo',
-                      historicoCargos: []
-                    }),
-                    status: value
+            <TabsContent value="dados">
+              <div className="grid gap-4 py-4">
+                <Input
+                  label="Nome Completo *"
+                  value={funcionarioEditando?.nome || ''}
+                  onChange={(evento) => setFuncionarioEditando(anterior => ({ 
+                    ...anterior!, 
+                    nome: evento.target.value 
                   }))}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecione o status" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="ativo">Ativo</SelectItem>
-                    <SelectItem value="inativo">Inativo</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
+                />
 
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Histórico de Cargos</label>
-              <div className="card-juridico p-4 space-y-4">
-                {funcionarioEditando?.historicoCargos.map((cargo) => (
-                  <div key={cargo.id} className="flex justify-between items-start border-b pb-2">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2">
-                        <Briefcase className="w-4 h-4 text-primary" />
-                        <p className="font-medium">{cargo.cargo}</p>
-                      </div>
-                      <div className="ml-6">
-                        <p className="text-sm text-gray-600">{cargo.departamento}</p>
-                        <p className="text-xs text-gray-400">
+                <div className="grid grid-cols-2 gap-4">
+                  <Input
+                    label="Cargo *"
+                    value={funcionarioEditando?.cargo || ''}
+                    onChange={(evento) => setFuncionarioEditando(anterior => ({ 
+                      ...anterior!, 
+                      cargo: evento.target.value 
+                    }))}
+                  />
+
+                  <Select
+                    value={funcionarioEditando?.departamento || ''}
+                    onValueChange={(valor) => setFuncionarioEditando(anterior => ({ 
+                      ...anterior!, 
+                      departamento: valor 
+                    }))}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione o Departamento" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {departamentos.map(departamento => (
+                        <SelectItem key={departamento} value={departamento}>
+                          {departamento}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <Input
+                    label="Contacto *"
+                    value={funcionarioEditando?.contacto || ''}
+                    onChange={(evento) => setFuncionarioEditando(anterior => ({ 
+                      ...anterior!, 
+                      contacto: evento.target.value 
+                    }))}
+                  />
+
+                  <Input
+                    label="Número de Identificação Fiscal *"
+                    value={funcionarioEditando?.nif || ''}
+                    onChange={(evento) => setFuncionarioEditando(anterior => ({ 
+                      ...anterior!, 
+                      nif: evento.target.value 
+                    }))}
+                  />
+                  {funcionarioEditando?.nif && !validarNIF(funcionarioEditando.nif) && (
+                    <span className="text-red-500 text-sm">NIF inválido (deve conter 9 dígitos)</span>
+                  )}
+                </div>
+              </div>
+            </TabsContent>
+
+            <TabsContent value="historico">
+              <div className="space-y-4 py-4">
+                {funcionarioEditando?.historicoCargos.map((cargo, indice) => (
+                  <div key={indice} className="card-juridico p-4">
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <h4 className="font-medium">{cargo.cargo}</h4>
+                        <p className="text-sm">{cargo.departamento}</p>
+                        <p className="text-xs text-gray-500">
                           {new Date(cargo.dataInicio).toLocaleDateString('pt-MZ')} - 
                           {cargo.dataFim ? new Date(cargo.dataFim).toLocaleDateString('pt-MZ') : 'Atual'}
                         </p>
                       </div>
-                    </div>
-                    <div className="flex gap-2">
-                      <button className="text-primary text-sm hover:underline">
-                        Editar
-                      </button>
-                      <button className="text-red-600 text-sm hover:underline">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          const novoHistorico = funcionarioEditando.historicoCargos
+                            .filter((_, index) => index !== indice);
+                          setFuncionarioEditando(anterior => ({ 
+                            ...anterior!, 
+                            historicoCargos: novoHistorico 
+                          }));
+                        }}
+                      >
                         Remover
-                      </button>
+                      </Button>
                     </div>
                   </div>
                 ))}
-                <button className="btn-primary flex items-center gap-2 w-full mt-4">
-                  <Plus className="w-4 h-4" />
+                <Button
+                  onClick={() => {
+                    const novoCargo = {
+                      id: Date.now(),
+                      cargo: '',
+                      departamento: '',
+                      dataInicio: new Date().toISOString().split('T')[0],
+                      dataFim: null
+                    };
+                    setFuncionarioEditando(anterior => ({
+                      ...anterior!,
+                      historicoCargos: [...anterior!.historicoCargos, novoCargo]
+                    }));
+                  }}
+                >
                   Adicionar Cargo Anterior
-                </button>
+                </Button>
               </div>
-            </div>
-          </div>
+            </TabsContent>
+
+            <TabsContent value="documentos">
+              <div className="space-y-4 py-4">
+                <input
+                  type="file"
+                  onChange={handleUploadDocumento}
+                  multiple
+                  className="hidden"
+                  id="upload-documento"
+                />
+                <label
+                  htmlFor="upload-documento"
+                  className="btn-primary flex items-center gap-2 cursor-pointer mb-4"
+                >
+                  <Upload className="w-4 h-4" />
+                  Adicionar Documentos
+                </label>
+
+                <div className="grid grid-cols-2 gap-2">
+                  {funcionarioEditando?.documentos?.map((documento, indice) => (
+                    <div key={indice} className="card-juridico p-2 flex items-center gap-2">
+                      <FileText className="w-4 h-4" />
+                      <span className="text-sm flex-1">{documento.nome}</span>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          const novosDocumentos = funcionarioEditando.documentos
+                            .filter((_, index) => index !== indice);
+                          setFuncionarioEditando(anterior => ({ 
+                            ...anterior!, 
+                            documentos: novosDocumentos 
+                          }));
+                        }}
+                      >
+                        <Trash2 className="w-4 h-4 text-red-600" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </TabsContent>
+          </Tabs>
 
           <DialogFooter>
-            <button 
-              className="btn-primary"
-              onClick={() => funcionarioEditando && handleSubmit(funcionarioEditando)}
-              disabled={!funcionarioEditando?.nome || !funcionarioEditando?.cargo || !funcionarioEditando?.departamento}
+            <Button variant="outline" onClick={() => setIsModalOpen(false)}>
+              Cancelar
+            </Button>
+            <Button
+              onClick={() => funcionarioEditando && handleSubmeter(funcionarioEditando)}
+              disabled={!formularioValido}
             >
               {funcionarioEditando ? 'Salvar Alterações' : 'Criar Funcionário'}
-            </button>
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

@@ -1,45 +1,97 @@
 // pages/ClientesPage.tsx
 import { useState, useEffect } from 'react';
-import { Plus, Search, User, Briefcase, Mail, Phone, Calendar } from 'lucide-react';
+import {
+  Plus,
+  Search,
+  Building,
+  User,
+  Phone,
+  Mail,
+  Calendar,
+  LayoutGrid,
+  Table,
+  BadgePercent,
+  Clock
+} from 'lucide-react';
 import { Skeleton } from '../components/Skeleton';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '../components/ui/Dialog';
 import { Input } from '../components/ui/Input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/Select';
+import { Button } from '../components/ui/Button';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '../components/ui/Tabs';
+import { ResponsiveContainer, PieChart as RechartsPieChart, Pie, Cell, Tooltip } from 'recharts';
 
 type Cliente = {
   id: number;
   nome: string;
+  tipo: 'PS' | 'PC';
+  nuito: string;
+  contacto: string;
   email: string;
-  telefone: string;
   empresa: string;
   dataCadastro: string;
-  tipo: 'PS' | 'PC'; // PS = Pessoa Singular, PC = Pessoa Coletiva
+  status: 'ativo' | 'inativo' | 'potencial';
+  historicoInteracoes: Interacao[];
+  documentos: Documento[];
+};
+
+type Interacao = {
+  id: number;
+  data: string;
+  tipo: 'reuniao' | 'email' | 'ligacao';
+  descricao: string;
+};
+
+type Documento = {
+  id: number;
+  nome: string;
+  tipo: string;
+  dataUpload: string;
 };
 
 const clientesMock: Cliente[] = [
   {
     id: 1,
-    nome: 'Carlos Macuácua',
-    email: 'carlos@mozholding.co.mz',
-    telefone: '+258 84 123 4567',
+    nome: 'Moza Holdings',
+    tipo: 'PC',
+    nuito: '123456789',
+    contacto: '+258 84 123 4567',
+    email: 'contato@mozholding.co.mz',
     empresa: 'Moza Holdings',
-    dataCadastro: '2024-02-15',
-    tipo: 'PC'
+    dataCadastro: '2023-01-15',
+    status: 'ativo',
+    historicoInteracoes: [
+      {
+        id: 1,
+        data: '2024-03-20',
+        tipo: 'reuniao',
+        descricao: 'Revisão de contrato de prestação de serviços'
+      }
+    ],
+    documentos: []
   },
-  {
-    id: 2,
-    nome: 'Ana Maria dos Santos',
-    email: 'ana.santos@email.com',
-    telefone: '+258 82 987 6543',
-    empresa: 'Particular',
-    dataCadastro: '2024-03-10',
-    tipo: 'PS'
-  },
+  // ... outros clientes
 ];
+
+const getStatusColor = (status: string) => {
+  switch (status) {
+    case 'ativo': return 'bg-green-100 text-green-800';
+    case 'inativo': return 'bg-red-100 text-red-800';
+    case 'potencial': return 'bg-blue-100 text-blue-800';
+    default: return 'bg-gray-100 text-gray-800';
+  }
+};
 
 export default function ClientesPage() {
   const [clientes, setClientes] = useState<Cliente[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [filtro, setFiltro] = useState('');
+  const [visualizacao, setVisualizacao] = useState<'tabela' | 'cards'>('tabela');
+  const [filtros, setFiltros] = useState({
+    texto: '',
+    tipo: 'todos',
+    status: 'todos',
+    data: ''
+  });
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [clienteEditando, setClienteEditando] = useState<Cliente | null>(null);
 
@@ -50,56 +102,130 @@ export default function ClientesPage() {
     }, 1000);
   }, []);
 
-  const clientesFiltrados = clientes.filter(cliente =>
-    cliente.nome.toLowerCase().includes(filtro.toLowerCase()) ||
-    cliente.email.toLowerCase().includes(filtro.toLowerCase()) ||
-    cliente.empresa.toLowerCase().includes(filtro.toLowerCase())
-  );
+  const clientesFiltrados = clientes.filter(cliente => {
+    const matchesTexto = cliente.nome.toLowerCase().includes(filtros.texto.toLowerCase()) ||
+      cliente.empresa.toLowerCase().includes(filtros.texto.toLowerCase()) ||
+      cliente.email.toLowerCase().includes(filtros.texto.toLowerCase());
 
-  const handleSubmit = (cliente: Cliente) => {
-    const novoCliente = {
-      ...cliente,
-      dataCadastro: cliente.id ? cliente.dataCadastro : new Date().toISOString().split('T')[0]
-    };
+    const matchesTipo = filtros.tipo === 'todos' || cliente.tipo === filtros.tipo;
+    const matchesStatus = filtros.status === 'todos' || cliente.status === filtros.status;
+    const matchesData = !filtros.data || cliente.dataCadastro === filtros.data;
 
-    if (novoCliente.id) {
-      setClientes(prev => prev.map(c => c.id === novoCliente.id ? novoCliente : c));
-    } else {
-      setClientes(prev => [...prev, { 
-        ...novoCliente, 
-        id: Math.max(...prev.map(c => c.id), 0) + 1 
-      }]);
-    }
-    setIsModalOpen(false);
-    setClienteEditando(null);
+    return matchesTexto && matchesTipo && matchesStatus && matchesData;
+  });
+
+  const metricas = {
+    totalClientes: clientes.length,
+    clientesAtivos: clientes.filter(c => c.status === 'ativo').length,
+    taxaConversao: '32%'
+  };
+  const [abaAtiva, setAbaAtiva] = useState('dados');
+
+  const dataGrafico = [
+    { tipo: 'PS', quantidade: clientes.filter(c => c.tipo === 'PS').length },
+    { tipo: 'PC', quantidade: clientes.filter(c => c.tipo === 'PC').length }
+  ];
+  const handleFiltroTextoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setFiltros(prev => ({ ...prev, texto: e.target.value }));
   };
 
   return (
     <main className="flex-1 overflow-auto p-6">
       <div className="mb-6 flex items-center justify-between">
-        <h1 className="text-3xl font-bold texto-escuro">Clientes</h1>
-        <button 
-          className="btn-primary flex items-center gap-2"
-          onClick={() => {
-            setClienteEditando(null);
-            setIsModalOpen(true);
-          }}
-        >
-          <Plus className="w-4 h-4" />
+        <h1 className="text-3xl font-bold texto-escuro">Gestão de Clientes</h1>
+        <Button onClick={() => setIsModalOpen(true)}>
+          <Plus className="w-4 h-4 mr-2" />
           Novo Cliente
-        </button>
+        </Button>
       </div>
 
-      <div className="mb-6 card-juridico p-4 flex items-center gap-3">
-        <Search className="w-5 h-5 text-gray-400" />
+      {/* Filtros e Métricas */}
+      <div className="mb-6 grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="relative flex items-center">
+        <Search className="absolute left-3 w-5 h-5 text-gray-400" />
         <Input
           placeholder="Pesquisar clientes..."
-          value={filtro}
-          onChange={(e) => setFiltro(e.target.value)}
-          className="flex-1 border-0 px-3 py-2"
+          value={filtros.texto}
+          onChange={handleFiltroTextoChange}
+          className="pl-10"
         />
       </div>
 
+        <Select
+          value={filtros.tipo}
+          onValueChange={value => setFiltros(prev => ({ ...prev, tipo: value }))}
+        >
+          <SelectTrigger>
+            <SelectValue placeholder="Todos Tipos" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="todos">Todos Tipos</SelectItem>
+            <SelectItem value="PS">Pessoa Singular</SelectItem>
+            <SelectItem value="PC">Pessoa Coletiva</SelectItem>
+          </SelectContent>
+        </Select>
+
+        <Select
+          value={filtros.status}
+          onValueChange={value => setFiltros(prev => ({ ...prev, status: value }))}
+        >
+          <SelectTrigger>
+            <SelectValue placeholder="Todos Status" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="todos">Todos Status</SelectItem>
+            <SelectItem value="ativo">Ativo</SelectItem>
+            <SelectItem value="inativo">Inativo</SelectItem>
+            <SelectItem value="potencial">Potencial</SelectItem>
+          </SelectContent>
+        </Select>
+
+        <Input
+          type="date"
+          value={filtros.data}
+          onChange={e => setFiltros(prev => ({ ...prev, data: e.target.value }))}
+        />
+      </div>
+
+      {/* Estatísticas */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+        <div className="card-juridico p-4 flex items-center gap-4">
+          <Building className="w-8 h-8 text-primary" />
+          <div>
+            <p className="text-sm">Total de Clientes</p>
+            <p className="text-2xl font-bold">{metricas.totalClientes}</p>
+          </div>
+        </div>
+
+        <div className="card-juridico p-4 flex items-center gap-4">
+          <BadgePercent className="w-8 h-8 text-green-600" />
+          <div>
+            <p className="text-sm">Taxa de Conversão</p>
+            <p className="text-2xl font-bold">{metricas.taxaConversao}</p>
+          </div>
+        </div>
+
+        <div className="card-juridico p-4">
+          <ResponsiveContainer width="100%" height={100}>
+            <RechartsPieChart>
+              <Pie
+                data={dataGrafico}
+                dataKey="quantidade"
+                nameKey="tipo"
+                cx="50%"
+                cy="50%"
+                outerRadius={40}
+              >
+                <Cell fill="#3B82F6" />
+                <Cell fill="#10B981" />
+              </Pie>
+              <Tooltip />
+            </RechartsPieChart>
+          </ResponsiveContainer>
+        </div>
+      </div>
+
+      {/* Visualização */}
       {isLoading ? (
         <div className="space-y-4">
           {[...Array(5)].map((_, index) => (
@@ -107,71 +233,97 @@ export default function ClientesPage() {
           ))}
         </div>
       ) : (
-        <table className="tabela-juridica w-full">
-          <thead>
-            <tr>
-              <th>Nome</th>
-              <th>Empresa</th>
-              <th>Contacto</th>
-              <th>Data de Cadastro</th>
-              <th>Tipo</th>
-            </tr>
-          </thead>
-          <tbody>
-            {clientesFiltrados.map(cliente => (
-              <tr 
-                key={cliente.id}
-                className="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800"
-                onClick={() => {
-                  setClienteEditando(cliente);
-                  setIsModalOpen(true);
-                }}
-              >
-                <td>
-                  <div className="flex items-center gap-3">
-                    <User className="w-5 h-5 text-primary" />
-                    {cliente.nome}
+        <>
+          <div className="mb-4 flex gap-2">
+            <Button
+              variant={visualizacao === 'tabela' ? 'default' : 'outline'}
+              onClick={() => setVisualizacao('tabela')}
+            >
+              <Table className="w-4 h-4 mr-2" />
+              Tabela
+            </Button>
+            <Button
+              variant={visualizacao === 'cards' ? 'default' : 'outline'}
+              onClick={() => setVisualizacao('cards')}
+            >
+              <LayoutGrid className="w-4 h-4 mr-2" />
+              Cards
+            </Button>
+          </div>
+
+          {visualizacao === 'cards' ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+              {clientesFiltrados.map(cliente => (
+                <div key={cliente.id} className="card-juridico p-4 hover:shadow-lg">
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className={`p-2 rounded-full ${cliente.tipo === 'PC' ? 'bg-blue-100' : 'bg-purple-100'}`}>
+                      {cliente.tipo === 'PC' ? (
+                        <Building className="w-6 h-6 text-blue-600" />
+                      ) : (
+                        <User className="w-6 h-6 text-purple-600" />
+                      )}
+                    </div>
+                    <div>
+                      <h3 className="font-semibold">{cliente.nome}</h3>
+                      <p className="text-sm text-gray-500">{cliente.empresa}</p>
+                    </div>
                   </div>
-                </td>
-                <td>
-                  <div className="flex items-center gap-2">
-                    <Briefcase className="w-4 h-4" />
-                    {cliente.empresa}
-                  </div>
-                </td>
-                <td>
-                  <div className="flex flex-col">
-                    <span className="flex items-center gap-2">
-                      <Mail className="w-4 h-4" />
-                      {cliente.email}
-                    </span>
-                    <span className="flex items-center gap-2 text-sm text-gray-500">
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2">
                       <Phone className="w-4 h-4" />
-                      {cliente.telefone}
-                    </span>
+                      <span>{cliente.contacto}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Mail className="w-4 h-4" />
+                      <span>{cliente.email}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Calendar className="w-4 h-4" />
+                      <span>{new Date(cliente.dataCadastro).toLocaleDateString('pt-MZ')}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className={`px-2.5 py-0.5 rounded-full text-xs ${getStatusColor(cliente.status)}`}>
+                        {cliente.status.toUpperCase()}
+                      </span>
+                    </div>
                   </div>
-                </td>
-                <td>
-                  <div className="flex items-center gap-2">
-                    <Calendar className="w-4 h-4" />
-                    {new Date(cliente.dataCadastro).toLocaleDateString('pt-MZ')}
-                  </div>
-                </td>
-                <td>
-                  <span className={`px-2.5 py-0.5 rounded-full text-xs ${
-                    cliente.tipo === 'PC' 
-                      ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/20' 
-                      : 'bg-purple-100 text-purple-800 dark:bg-purple-900/20'
-                  }`}>
-                    {cliente.tipo === 'PC' ? 'Pessoa Coletiva' : 'Pessoa Singular'}
-                  </span>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <table className="tabela-juridica w-full">
+              <thead>
+                <tr>
+                  <th>Nome</th>
+                  <th>Tipo</th>
+                  <th>Contacto</th>
+                  <th>Empresa</th>
+                  <th>Data Cadastro</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {clientesFiltrados.map(cliente => (
+                  <tr key={cliente.id} className="hover:bg-gray-50">
+                    <td>{cliente.nome}</td>
+                    <td>{cliente.tipo === 'PC' ? 'Pessoa Coletiva' : 'Pessoa Singular'}</td>
+                    <td>{cliente.contacto}</td>
+                    <td>{cliente.empresa}</td>
+                    <td>{new Date(cliente.dataCadastro).toLocaleDateString('pt-MZ')}</td>
+                    <td>
+                      <span className={`px-2.5 py-0.5 rounded-full text-xs ${getStatusColor(cliente.status)}`}>
+                        {cliente.status.toUpperCase()}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </>
       )}
 
+      {/* Modal de Edição */}
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
         <DialogContent className="sm:max-w-[600px]">
           <DialogHeader>
@@ -179,113 +331,90 @@ export default function ClientesPage() {
               {clienteEditando ? 'Editar Cliente' : 'Novo Cliente'}
             </DialogTitle>
           </DialogHeader>
-          
-          <div className="grid gap-4 py-4">
-            <Input
-                label="Nome Completo *"
-                value={clienteEditando?.nome || ''}
-                onChange={(e) => setClienteEditando(prev => ({
-                  ...(prev || {
-                    id: 0,
-                    nome: '',
-                    email: '',
-                    telefone: '',
-                    empresa: '',
-                    dataCadastro: '',
-                    tipo: 'PS'
-                  }),
-                  nome: e.target.value
-                }))}
-              />
 
-            <div className="grid grid-cols-2 gap-4">
-              <Input
-                 label="Email *"
-                 type="email"
-                 value={clienteEditando?.email || ''}
-                 onChange={(e) => setClienteEditando(prev => ({
-                   ...(prev || {
-                     id: 0,
-                     nome: '',
-                     email: '',
-                     telefone: '',
-                     empresa: '',
-                     dataCadastro: '',
-                     tipo: 'PS'
-                   }),
-                   email: e.target.value
-                 }))}
-               />
+          <Tabs value={abaAtiva} onValueChange={setAbaAtiva}>
+        <TabsList className="grid grid-cols-2">
+          <TabsTrigger value="dados">Dados Principais</TabsTrigger>
+          <TabsTrigger value="historico">Histórico</TabsTrigger>
+        </TabsList>
 
-              <Input
-                label="Telefone *"
-                value={clienteEditando?.telefone || ''}
-                onChange={(e) => setClienteEditando(prev => ({
-                  ...(prev || {
-                    id: 0,
-                    nome: '',
-                    email: '',
-                    telefone: '',
-                    empresa: '',
-                    dataCadastro: '',
-                    tipo: 'PS'
-                  }),
-                  telefone: e.target.value
-                }))}
-              />
-            </div>
+            <TabsContent value="dados">
+              <div className="grid gap-4 py-4">
+                <Input
+                  label="Nome Completo/Razão Social *"
+                  value={clienteEditando?.nome || ''}
+                  onChange={e => setClienteEditando(prev => ({ ...prev!, nome: e.target.value }))}
+                />
 
-            <div className="grid grid-cols-2 gap-4">
-              <Input
-                 label="Empresa"
-                 value={clienteEditando?.empresa || ''}
-                 onChange={(e) => setClienteEditando(prev => ({
-                   ...(prev || {
-                     id: 0,
-                     nome: '',
-                     email: '',
-                     telefone: '',
-                     empresa: '',
-                     dataCadastro: '',
-                     tipo: 'PS'
-                   }),
-                   empresa: e.target.value
-                 }))}
-               />
+                <div className="grid grid-cols-2 gap-4">
+                  <Select
+                    value={clienteEditando?.tipo || 'PS'}
+                    onValueChange={value => setClienteEditando(prev => ({ ...prev!, tipo: value as 'PS' | 'PC' }))}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Tipo de Cliente" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="PS">Pessoa Singular</SelectItem>
+                      <SelectItem value="PC">Pessoa Coletiva</SelectItem>
+                    </SelectContent>
+                  </Select>
 
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Tipo *</label>
-                <select
-                   value={clienteEditando?.tipo || 'PS'}
-                   onChange={(e) => setClienteEditando(prev => ({
-                     ...(prev || {
-                       id: 0,
-                       nome: '',
-                       email: '',
-                       telefone: '',
-                       empresa: '',
-                       dataCadastro: '',
-                       tipo: 'PS'
-                     }),
-                     tipo: e.target.value as 'PS' | 'PC'
-                   }))}
-                   className="card-juridico p-3 w-full"
-                 >
-                  <option value="PS">Pessoa Singular</option>
-                  <option value="PC">Pessoa Coletiva</option>
-                </select>
+                  <Input
+                    label="NUIT *"
+                    value={clienteEditando?.nuito || ''}
+                    onChange={e => setClienteEditando(prev => ({ ...prev!, nuito: e.target.value }))}
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <Input
+                    label="Contacto *"
+                    value={clienteEditando?.contacto || ''}
+                    onChange={e => setClienteEditando(prev => ({ ...prev!, contacto: e.target.value }))}
+                  />
+
+                  <Input
+                    label="Email *"
+                    type="email"
+                    value={clienteEditando?.email || ''}
+                    onChange={e => setClienteEditando(prev => ({ ...prev!, email: e.target.value }))}
+                  />
+                </div>
+
+                {clienteEditando?.tipo === 'PC' && (
+                  <Input
+                    label="Empresa"
+                    value={clienteEditando?.empresa || ''}
+                    onChange={e => setClienteEditando(prev => ({ ...prev!, empresa: e.target.value }))}
+                  />
+                )}
               </div>
-            </div>
-          </div>
+            </TabsContent>
+
+            <TabsContent value="historico">
+              <div className="space-y-4">
+                {clienteEditando?.historicoInteracoes.map((interacao, index) => (
+                  <div key={index} className="card-juridico p-4">
+                    <div className="flex items-center gap-2">
+                      <Clock className="w-4 h-4" />
+                      <span>{new Date(interacao.data).toLocaleDateString('pt-MZ')}</span>
+                      <span className="capitalize">{interacao.tipo}</span>
+                    </div>
+                    <p className="text-sm mt-2">{interacao.descricao}</p>
+                  </div>
+                ))}
+              </div>
+            </TabsContent>
+          </Tabs>
 
           <DialogFooter>
-            <button 
-              className="btn-primary"
-              onClick={() => clienteEditando && handleSubmit(clienteEditando)}
-              disabled={!clienteEditando?.nome || !clienteEditando?.email}
-            >
+            <Button variant="outline" onClick={() => setIsModalOpen(false)}>
+              Cancelar
+            </Button>
+            <Button>
               {clienteEditando ? 'Salvar Alterações' : 'Criar Cliente'}
-            </button>
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
