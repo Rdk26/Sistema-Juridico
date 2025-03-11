@@ -106,11 +106,57 @@ export default function AtividadesPage() {
     ).length
   };
 
+  const marcarComoConcluida = (id: number) => {
+    setAtividades(prev => prev.map(atividade => 
+      atividade.id === id ? { 
+        ...atividade, 
+        status: 'concluida',
+        dataConclusao: new Date().toISOString().split('T')[0]
+      } : atividade
+    ));
+  };
+
+  const handleSubmit = () => {
+    if (atividadeEditando) {
+        if (atividadeEditando.id) {
+            setAtividades(prev => prev.map(a => 
+                a.id === atividadeEditando.id ? atividadeEditando : a
+            ));
+        } else {
+            const novaAtividade: Atividade = { // Tipo explícito
+                ...atividadeEditando,
+                id: Date.now(),
+                status: 'pendente' as const, // Tipo literal
+                dataConclusao: undefined
+            };
+            setAtividades(prev => [...prev, novaAtividade]);
+        }
+    }
+    setIsModalOpen(false);
+    setAtividadeEditando(null);
+};
+
+  const handleDelete = (id: number) => {
+    setAtividades(prev => prev.filter(a => a.id !== id));
+  };
+
   return (
     <main className="flex-1 overflow-auto p-6">
       <div className="mb-6 flex items-center justify-between">
         <h1 className="text-3xl font-bold texto-escuro">Gestão de Atividades</h1>
-        <Button onClick={() => setIsModalOpen(true)}>
+        <Button onClick={() => {
+          setAtividadeEditando({
+            id: 0,
+            titulo: '',
+            tipo: 'audiencia',
+            descricao: '',
+            dataPrevista: new Date().toISOString().split('T')[0],
+            status: 'pendente',
+            responsavel: '',
+            prioridade: 'media'
+          });
+          setIsModalOpen(true);
+        }}>
           <Plus className="w-4 h-4 mr-2" />
           Nova Atividade
         </Button>
@@ -146,7 +192,7 @@ export default function AtividadesPage() {
 
         <Select
           value={filtros.status}
-          onValueChange={value => setFiltros(prev => ({ ...prev, status: value }))}
+          onValueChange={value => setFiltros(prev => ({ ...prev, prioridade: value }))}
         >
           <SelectTrigger>
             <SelectValue placeholder="Todos Status" />
@@ -228,6 +274,11 @@ export default function AtividadesPage() {
                       <Calendar className="w-4 h-4" />
                       <span className="text-sm">
                         {new Date(atividade.dataPrevista).toLocaleDateString('pt-MZ')}
+                        {atividade.dataConclusao && (
+                          <span className="ml-2 text-green-600">
+                            (Concluído em {new Date(atividade.dataConclusao).toLocaleDateString('pt-MZ')})
+                          </span>
+                        )}
                       </span>
                     </div>
                     <div className="flex items-center gap-1">
@@ -236,15 +287,34 @@ export default function AtividadesPage() {
                     </div>
                   </div>
                 </div>
-                <Button
-                  variant="outline"
-                  onClick={() => {
-                    setAtividadeEditando(atividade);
-                    setIsModalOpen(true);
-                  }}
-                >
-                  Editar
-                </Button>
+                <div className="flex flex-col gap-2">
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setAtividadeEditando(atividade);
+                      setIsModalOpen(true);
+                    }}
+                  >
+                    Editar
+                  </Button>
+                  {atividade.status !== 'concluida' && (
+                    <Button
+                      variant="outline"
+                      className="text-green-600 border-green-100 hover:bg-green-50"
+                      onClick={() => marcarComoConcluida(atividade.id)}
+                    >
+                      <CheckCircle className="w-4 h-4 mr-2" />
+                      Concluir
+                    </Button>
+                  )}
+              <Button
+                variant="destructive"
+                className="text-white bg-destructive hover:bg-destructive/90 dark:text-destructive-foreground"
+                onClick={() => handleDelete(atividade.id)}
+              >
+                Excluir
+              </Button>
+                </div>
               </div>
             </div>
           ))
@@ -256,7 +326,7 @@ export default function AtividadesPage() {
         <DialogContent className="sm:max-w-[600px]">
           <DialogHeader>
             <DialogTitle>
-              {atividadeEditando ? 'Editar Atividade' : 'Nova Atividade'}
+              {atividadeEditando?.id ? 'Editar Atividade' : 'Nova Atividade'}
             </DialogTitle>
           </DialogHeader>
 
@@ -264,13 +334,19 @@ export default function AtividadesPage() {
             <Input
               label="Título da Atividade *"
               value={atividadeEditando?.titulo || ''}
-              onChange={e => setAtividadeEditando(prev => ({ ...prev!, titulo: e.target.value }))}
+              onChange={e => setAtividadeEditando(prev => ({
+                ...prev!,
+                titulo: e.target.value
+              }))}
             />
 
             <div className="grid grid-cols-2 gap-4">
               <Select
                 value={atividadeEditando?.tipo || 'audiencia'}
-                onValueChange={value => setAtividadeEditando(prev => ({ ...prev!, tipo: value as any }))}
+                onValueChange={value => setAtividadeEditando(prev => ({
+                  ...prev!,
+                  tipo: value as 'audiencia' | 'peticao' | 'diligencia' | 'outro'
+                }))}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Tipo de Atividade" />
@@ -285,7 +361,10 @@ export default function AtividadesPage() {
 
               <Select
                 value={atividadeEditando?.prioridade || 'media'}
-                onValueChange={value => setAtividadeEditando(prev => ({ ...prev!, prioridade: value as any }))}
+                onValueChange={value => setAtividadeEditando(prev => ({
+                  ...prev!,
+                  prioridade: value as 'alta' | 'media' | 'baixa'
+                }))}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Prioridade" />
@@ -298,17 +377,42 @@ export default function AtividadesPage() {
               </Select>
             </div>
 
-            <Input
-              label="Data Prevista *"
-              type="date"
-              value={atividadeEditando?.dataPrevista || ''}
-              onChange={e => setAtividadeEditando(prev => ({ ...prev!, dataPrevista: e.target.value }))}
-            />
+            <div className="grid grid-cols-2 gap-4">
+              <Input
+                label="Data Prevista *"
+                type="date"
+                value={atividadeEditando?.dataPrevista || ''}
+                onChange={e => setAtividadeEditando(prev => ({
+                  ...prev!,
+                  dataPrevista: e.target.value
+                }))}
+              />
+
+              <Select
+                value={atividadeEditando?.status || 'pendente'}
+                onValueChange={value => setAtividadeEditando(prev => ({
+                  ...prev!,
+                  status: value as 'pendente' | 'concluida' | 'atrasada'
+                }))}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="pendente">Pendente</SelectItem>
+                  <SelectItem value="concluida">Concluída</SelectItem>
+                  <SelectItem value="atrasada">Atrasada</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
 
             <Input
               label="Responsável *"
               value={atividadeEditando?.responsavel || ''}
-              onChange={e => setAtividadeEditando(prev => ({ ...prev!, responsavel: e.target.value }))}
+              onChange={e => setAtividadeEditando(prev => ({
+                ...prev!,
+                responsavel: e.target.value
+              }))}
             />
 
             <div className="space-y-2">
@@ -318,7 +422,10 @@ export default function AtividadesPage() {
               <textarea
                 rows={3}
                 value={atividadeEditando?.descricao || ''}
-                onChange={e => setAtividadeEditando(prev => ({ ...prev!, descricao: e.target.value }))}
+                onChange={e => setAtividadeEditando(prev => ({
+                  ...prev!,
+                  descricao: e.target.value
+                }))}
                 className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
               />
             </div>
@@ -328,8 +435,11 @@ export default function AtividadesPage() {
             <Button variant="outline" onClick={() => setIsModalOpen(false)}>
               Cancelar
             </Button>
-            <Button>
-              {atividadeEditando ? 'Salvar Alterações' : 'Criar Atividade'}
+            <Button
+              onClick={handleSubmit}
+              disabled={!atividadeEditando?.titulo || !atividadeEditando.responsavel}
+            >
+              {atividadeEditando?.id ? 'Salvar Alterações' : 'Criar Atividade'}
             </Button>
           </DialogFooter>
         </DialogContent>

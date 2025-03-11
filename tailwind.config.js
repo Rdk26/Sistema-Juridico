@@ -8,7 +8,11 @@ module.exports = {
     extend: {
       colors: {
         primary: '#2A3F54',
-        secondary: '#3B82F6'
+        secondary: '#3B82F6',
+        destructive: {
+          DEFAULT: '#dc2626', // Vermelho padrão
+          foreground: '#ffffff', // Texto branco
+        },
       }
     },
   },
