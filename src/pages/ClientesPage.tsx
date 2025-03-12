@@ -14,7 +14,10 @@ import {
   Clock,
   Trash2,
   Edit,
-  File
+  File,
+  Eye,
+  Upload,
+  Download
 } from 'lucide-react';
 import { Skeleton } from '../components/Skeleton';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '../components/ui/Dialog';
@@ -36,6 +39,7 @@ type Cliente = {
   status: 'ativo' | 'inativo' | 'potencial';
   historicoInteracoes: Interacao[];
   documentos: Documento[];
+  historicoServicos: Servico[];
 };
 
 type Interacao = {
@@ -49,7 +53,18 @@ type Documento = {
   id: number;
   nome: string;
   tipo: string;
+  url: string;
   dataUpload: string;
+};
+
+type Servico = {
+  id: number;
+  servico: string;
+  advogado: string;
+  dataInicio: string;
+  dataConclusao: string | null;
+  status: 'Em andamento' | 'Concluído' | 'Cancelado';
+  comentarios: string;
 };
 
 const clientesMock: Cliente[] = [
@@ -75,8 +90,20 @@ const clientesMock: Cliente[] = [
       {
         id: 1,
         nome: 'Contrato.pdf',
-        tipo: 'Contrato',
+        tipo: 'application/pdf',
+        url: 'https://example.com/documentos/contrato.pdf',
         dataUpload: '2024-03-20'
+      }
+    ],
+    historicoServicos: [
+      {
+        id: 1,
+        servico: 'Elaboração de Contrato',
+        advogado: 'Dr. João Silva',
+        dataInicio: '2024-01-15',
+        dataConclusao: '2024-02-10',
+        status: 'Concluído',
+        comentarios: 'Contrato de prestação de serviços elaborado com sucesso'
       }
     ]
   },
@@ -91,6 +118,30 @@ const obterCorStatus = (status: string) => {
   }
 };
 
+const getStatusColor = (status: string) => {
+  switch (status) {
+    case 'Em andamento': return 'bg-blue-100 text-blue-800';
+    case 'Concluído': return 'bg-green-100 text-green-800';
+    case 'Cancelado': return 'bg-red-100 text-red-800';
+    default: return 'bg-gray-100 text-gray-800';
+  }
+};
+
+const servicosDisponiveis = [
+  'Consulta Jurídica',
+  'Elaboração de Contrato',
+  'Representação em Processo',
+  'Due Diligence',
+  'Consultoria Legal'
+];
+
+const advogadosDisponiveis = [
+  'Dr. João Silva',
+  'Dra. Maria Santos',
+  'Dr. Pedro Almeida',
+  'Dra. Ana Costa'
+];
+
 export default function ClientesPage() {
   const [clientes, setClientes] = useState<Cliente[]>([]);
   const [carregando, setCarregando] = useState(true);
@@ -103,6 +154,8 @@ export default function ClientesPage() {
   });
   const [modalAberto, setModalAberto] = useState(false);
   const [clienteEditando, setClienteEditando] = useState<Cliente | null>(null);
+  const [clienteVisualizando, setClienteVisualizando] = useState<Cliente | null>(null);
+  const [isDetalhesModalOpen, setIsDetalhesModalOpen] = useState(false);
   const [abaAtiva, setAbaAtiva] = useState('dados');
 
   useEffect(() => {
@@ -167,6 +220,101 @@ export default function ClientesPage() {
     setModalAberto(true);
   };
 
+  const handleVisualizarDetalhes = (cliente: Cliente) => {
+    setClienteVisualizando(cliente);
+    setIsDetalhesModalOpen(true);
+  };
+
+  const validarNIF = (nif: string) => {
+    const nifLimpo = nif.replace(/\D/g, '');
+    return /^\d{9}$/.test(nifLimpo);
+  };
+
+  const handleUploadDocumento = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const arquivos = event.target.files;
+    if (arquivos && arquivos.length > 0) {
+      const novosDocumentos = Array.from(arquivos).map(arquivo => ({
+        id: Date.now(),
+        nome: arquivo.name,
+        tipo: arquivo.type,
+        url: URL.createObjectURL(arquivo),
+        dataUpload: new Date().toISOString().split('T')[0]
+      }));
+      
+      setClienteEditando(anterior => ({
+        ...anterior!,
+        documentos: [...(anterior?.documentos || []), ...novosDocumentos]
+      }));
+    }
+  };
+
+  const handleDownloadDocumento = (documento: Documento) => {
+    const link = document.createElement('a');
+    link.href = documento.url;
+    link.download = documento.nome;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    if (documento.url.startsWith('http')) {
+      fetch(documento.url)
+        .then(response => response.blob())
+        .then(blob => {
+          const url = window.URL.createObjectURL(blob);
+          link.href = url;
+          link.download = documento.nome;
+          document.body.appendChild(link);
+          link.click();
+          window.URL.revokeObjectURL(url);
+          document.body.removeChild(link);
+        })
+        .catch(error => console.error('Erro no download:', error));
+    }
+  };
+
+  const handleAdicionarServico = () => {
+    if (clienteEditando) {
+      const novoServico: Servico = { // Explicitly type as Servico
+        id: Date.now(),
+        servico: '',
+        advogado: '',
+        dataInicio: new Date().toISOString().split('T')[0],
+        dataConclusao: null,
+        status: 'Em andamento', // Correct union type
+        comentarios: ''
+      };
+      
+      setClienteEditando(anterior => ({
+        ...anterior!,
+        historicoServicos: [...(anterior?.historicoServicos || []), novoServico]
+      }));
+    }
+  };
+
+  const handleRemoverServico = (indice: number) => {
+    if (clienteEditando) {
+      setClienteEditando(anterior => ({
+        ...anterior!,
+        historicoServicos: anterior!.historicoServicos.filter((_, index) => index !== indice)
+      }));
+    }
+  };
+
+  const handleServicoChange = (indice: number, campo: keyof Servico, valor: string | null) => {
+    if (clienteEditando) {
+      const novosServicos = [...clienteEditando.historicoServicos];
+      novosServicos[indice] = {
+        ...novosServicos[indice],
+        [campo]: valor
+      };
+      
+      setClienteEditando(anterior => ({
+        ...anterior!,
+        historicoServicos: novosServicos
+      }));
+    }
+  };
+
   return (
     <main className="flex-1 overflow-auto p-6">
       <div className="mb-6 flex items-center justify-between">
@@ -183,7 +331,8 @@ export default function ClientesPage() {
             dataCadastro: '',
             status: 'ativo',
             historicoInteracoes: [],
-            documentos: []
+            documentos: [],
+            historicoServicos: []
           });
           setModalAberto(true);
         }}>
@@ -331,6 +480,13 @@ export default function ClientesPage() {
                         <Edit className="w-4 h-4" />
                       </Button>
                       <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleVisualizarDetalhes(cliente)}
+                      >
+                        <Eye className="w-4 h-4" />
+                      </Button>
+                      <Button
                         variant="destructive"
                         size="sm"
                         onClick={() => manipularExclusao(cliente.id)}
@@ -399,6 +555,13 @@ export default function ClientesPage() {
                           <Edit className="w-4 h-4" />
                         </Button>
                         <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleVisualizarDetalhes(cliente)}
+                        >
+                          <Eye className="w-4 h-4" />
+                        </Button>
+                        <Button
                           variant="destructive"
                           size="sm"
                           onClick={() => manipularExclusao(cliente.id)}
@@ -415,9 +578,186 @@ export default function ClientesPage() {
         </>
       )}
 
+      {/* Modal de Detalhes */}
+      <Dialog open={isDetalhesModalOpen} onOpenChange={setIsDetalhesModalOpen}>
+      <DialogContent className="sm:max-w-[800px] p-8">
+        <DialogHeader>
+          <DialogTitle>
+            <div className="text-2xl font-bold mb-6">
+              Detalhes do Cliente: {clienteVisualizando?.nome}
+            </div>
+          </DialogTitle>
+        </DialogHeader>
+        
+        <div className="grid grid-cols-2 gap-8">
+          <div>
+            <div className="mb-6">
+              <h3 className="text-lg font-semibold mb-2">Informações Principais</h3>
+              <div className="space-y-4 p-4 border rounded-lg">
+                <div className="flex flex-col">
+                  <span className="font-medium text-gray-600">Nome:</span>
+                  <span className="text-lg">{clienteVisualizando?.nome}</span>
+                </div>
+                <div className="flex flex-col">
+                  <span className="font-medium text-gray-600">Tipo:</span>
+                  <span className="text-lg">
+                    {clienteVisualizando?.tipo === 'PessoaColetiva' 
+                      ? 'Pessoa Coletiva' 
+                      : 'Pessoa Singular'}
+                  </span>
+                </div>
+                <div className="flex flex-col">
+                  <span className="font-medium text-gray-600">NIF:</span>
+                  <span className="text-lg">{clienteVisualizando?.numeroIdentificacaoFiscal}</span>
+                </div>
+                <div className="flex flex-col">
+                  <span className="font-medium text-gray-600">Contacto:</span>
+                  <span className="text-lg">{clienteVisualizando?.contacto}</span>
+                </div>
+                <div className="flex flex-col">
+                  <span className="font-medium text-gray-600">Email:</span>
+                  <span className="text-lg">{clienteVisualizando?.email}</span>
+                </div>
+                <div className="flex flex-col">
+                  <span className="font-medium text-gray-600">Empresa:</span>
+                  <span className="text-lg">{clienteVisualizando?.empresa}</span>
+                </div>
+                <div className="flex flex-col">
+                  <span className="font-medium text-gray-600">Data de Cadastro:</span>
+                  <span className="text-lg">
+                    {clienteVisualizando?.dataCadastro 
+                      ? new Date(clienteVisualizando.dataCadastro).toLocaleDateString('pt-MZ') 
+                      : ''}
+                  </span>
+                </div>
+                <div className="flex flex-col">
+                  <span className="font-medium text-gray-600">Status:</span>
+                  <span className={`px-2.5 py-0.5 rounded-full text-xs ${obterCorStatus(clienteVisualizando?.status || 'ativo')}`}>
+                    {(clienteVisualizando?.status || 'ativo').toUpperCase()}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <div className="mb-6">
+              <h3 className="text-lg font-semibold mb-2">Documentos</h3>
+              {clienteVisualizando?.documentos && clienteVisualizando.documentos.length > 0 ? (
+                <div className="space-y-2">
+                  {clienteVisualizando.documentos.map((documento) => (
+                    <div key={documento.id} className="flex items-center p-3 border rounded-lg">
+                      <File className="w-5 h-5 mr-2 text-gray-500" />
+                      <div className="flex-1">
+                        <div className="font-medium text-gray-600">Nome:</div>
+                        <div className="text-sm">{documento.nome}</div>
+                        <div className="font-medium text-gray-600 mt-1">Tipo:</div>
+                        <div className="text-sm">{documento.tipo}</div>
+                        <div className="font-medium text-gray-600 mt-1">Data de Upload:</div>
+                        <div className="text-sm">
+                          {new Date(documento.dataUpload).toLocaleDateString('pt-MZ')}
+                        </div>
+                      </div>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="ml-2"
+                        onClick={() => handleDownloadDocumento(documento)}
+                      >
+                        <Download className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="p-4 border rounded-lg text-center">
+                  <p className="text-gray-500">Não há documentos associados a este cliente</p>
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div>
+            <div className="mb-6">
+              <h3 className="text-lg font-semibold mb-2">Histórico de Interacções</h3>
+              {clienteVisualizando?.historicoInteracoes && clienteVisualizando.historicoInteracoes.length > 0 ? (
+                <div className="space-y-4">
+                  {clienteVisualizando.historicoInteracoes.map((interacao) => (
+                    <div key={interacao.id} className="p-4 border rounded-lg">
+                      <div className="flex items-center gap-2 text-sm">
+                        <Clock className="w-4 h-4" />
+                        <span>{new Date(interacao.data).toLocaleDateString('pt-MZ')}</span>
+                        <span className="capitalize">{interacao.tipo}</span>
+                      </div>
+                      <p className="text-sm mt-2 text-gray-600">{interacao.descricao}</p>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="p-4 border rounded-lg text-center">
+                  <p className="text-gray-500">Não há histórico de interacções para este cliente</p>
+                </div>
+              )}
+            </div>
+
+            <div className="mb-6">
+              <h3 className="text-lg font-semibold mb-2">Histórico de Serviços</h3>
+              {clienteVisualizando?.historicoServicos && clienteVisualizando.historicoServicos.length > 0 ? (
+                <div className="space-y-4">
+                  {clienteVisualizando.historicoServicos.map(servico => (
+                    <div key={servico.id} className="p-4 border rounded-lg">
+                      <div className="flex flex-col gap-2">
+                        <div className="flex items-center justify-between">
+                          <span className="font-medium text-gray-600">Serviço:</span>
+                          <span className="font-semibold">{servico.servico}</span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span className="font-medium text-gray-600">Advogado:</span>
+                          <span className="font-semibold">{servico.advogado}</span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span className="font-medium text-gray-600">Período:</span>
+                          <span className="font-semibold">
+                            {new Date(servico.dataInicio).toLocaleDateString('pt-MZ')} - 
+                            {servico.dataConclusao 
+                              ? new Date(servico.dataConclusao).toLocaleDateString('pt-MZ') 
+                              : 'Em andamento'}
+                          </span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span className="font-medium text-gray-600">Status:</span>
+                          <span className={`px-2 py-1 rounded-full text-xs ${getStatusColor(servico.status)}`}>
+                            {servico.status}
+                          </span>
+                        </div>
+                        {servico.comentarios && (
+                          <div className="mt-2">
+                            <span className="font-medium text-gray-600">Comentários:</span>
+                            <p className="text-gray-600">{servico.comentarios}</p>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="p-4 border rounded-lg text-center">
+                  <p className="text-gray-500">Não há histórico de serviços para este cliente</p>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+        
+        <DialogFooter>
+          <Button variant="outline" onClick={() => setIsDetalhesModalOpen(false)}>
+            Fechar
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+
       {/* Modal de Edição */}
       <Dialog open={modalAberto} onOpenChange={setModalAberto}>
-        <DialogContent className="sm:max-w-[600px]">
+        <DialogContent className="sm:max-w-[800px]">
           <DialogHeader>
             <DialogTitle>
               {clienteEditando?.id ? `Editar Cliente: ${clienteEditando.nome}` : 'Cadastrar Novo Cliente'}
@@ -425,10 +765,11 @@ export default function ClientesPage() {
           </DialogHeader>
 
           <Tabs value={abaAtiva} onValueChange={setAbaAtiva}>
-            <TabsList className="grid grid-cols-3">
+            <TabsList className="grid grid-cols-4">
               <TabsTrigger value="dados">Dados Principais</TabsTrigger>
               <TabsTrigger value="historico">Histórico</TabsTrigger>
               <TabsTrigger value="documentos">Documentos</TabsTrigger>
+              <TabsTrigger value="servicos">Serviços</TabsTrigger>
             </TabsList>
 
             <TabsContent value="dados">
@@ -454,10 +795,22 @@ export default function ClientesPage() {
                   </Select>
 
                   <Input
-                    label="Número de Identificação Fiscal *"
-                    value={clienteEditando?.numeroIdentificacaoFiscal || ''}
-                    onChange={evento => setClienteEditando(anterior => ({ ...anterior!, numeroIdentificacaoFiscal: evento.target.value }))}
-                  />
+  label="Número de Identificação Fiscal *"
+  value={clienteEditando?.numeroIdentificacaoFiscal || ''}
+  onChange={(evento) => {
+    const valor = evento.target.value
+      .replace(/\D/g, '') // Remove todos os caracteres não numéricos
+      .replace(/(\d{3})(\d{3})(\d{3})/, '$1 $2 $3') // Formata com espaços
+      .trim()
+      .slice(0, 11); // Limita para 9 dígitos (com espaços)
+
+    setClienteEditando(anterior => ({
+      ...anterior!,
+      numeroIdentificacaoFiscal: valor
+    }));
+  }}
+  placeholder="Ex: 123 456 789"
+/>
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
@@ -515,19 +868,149 @@ export default function ClientesPage() {
             </TabsContent>
 
             <TabsContent value="documentos">
-              <div className="space-y-4">
-                {clienteEditando?.documentos.map((documento, indice) => (
-                  <div key={indice} className="card-juridico p-4">
-                    <div className="flex items-center gap-2">
+              <div className="space-y-4 py-4">
+                <input
+                  type="file"
+                  onChange={handleUploadDocumento}
+                  multiple
+                  className="hidden"
+                  id="upload-documento"
+                />
+                <label
+                  htmlFor="upload-documento"
+                  className="btn-primary flex items-center gap-2 cursor-pointer mb-4"
+                >
+                  <Upload className="w-4 h-4" />
+                  Adicionar Documentos
+                </label>
+
+                <div className="grid grid-cols-2 gap-2">
+                  {clienteEditando?.documentos.map((documento, indice) => (
+                    <div key={indice} className="card-juridico p-2 flex items-center gap-2">
                       <File className="w-4 h-4" />
-                      <span className="font-medium">{documento.nome}</span>
-                      <span className="text-sm text-gray-500">({documento.tipo})</span>
+                      <span className="text-sm flex-1">{documento.nome}</span>
+                      <div className="flex gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleDownloadDocumento(documento)}
+                        >
+                          <Download className="w-4 h-4" />
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            const novosDocumentos = clienteEditando?.documentos
+                              .filter((_, index) => index !== indice);
+                            setClienteEditando(anterior => ({ 
+                              ...anterior!, 
+                              documentos: novosDocumentos! 
+                            }));
+                          }}
+                        >
+                          <Trash2 className="w-4 h-4 text-red-600" />
+                        </Button>
+                      </div>
                     </div>
-                    <p className="text-xs mt-1 text-gray-500">
-                      Carregado em: {new Date(documento.dataUpload).toLocaleDateString('pt-MZ')}
-                    </p>
+                  ))}
+                </div>
+              </div>
+            </TabsContent>
+
+            <TabsContent value="servicos">
+              <div className="space-y-4 py-4">
+                {clienteEditando?.historicoServicos.map((servico, indice) => (
+                  <div key={indice} className="card-juridico p-4">
+                    <div className="grid grid-cols-2 gap-4">
+                      <Select
+                        value={servico.servico}
+                        onValueChange={(valor) => handleServicoChange(indice, 'servico', valor)}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Serviço" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {servicosDisponiveis.map(servicoOption => (
+                            <SelectItem key={servicoOption} value={servicoOption}>
+                              {servicoOption}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+
+                      <Select
+                        value={servico.advogado}
+                        onValueChange={(valor) => handleServicoChange(indice, 'advogado', valor)}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Advogado Responsável" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {advogadosDisponiveis.map(advogado => (
+                            <SelectItem key={advogado} value={advogado}>
+                              {advogado}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <Input
+                        type="date"
+                        label="Data de Início"
+                        value={servico.dataInicio}
+                        onChange={(e) => handleServicoChange(indice, 'dataInicio', e.target.value)}
+                      />
+
+                      <Input
+                        type="date"
+                        label="Data de Conclusão"
+                        value={servico.dataConclusao || ''}
+                        onChange={(e) => handleServicoChange(indice, 'dataConclusao', e.target.value || null)}
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <Select
+                        value={servico.status}
+                        onValueChange={(valor) => handleServicoChange(indice, 'status', valor)}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Status" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="Em andamento">Em andamento</SelectItem>
+                          <SelectItem value="Concluído">Concluído</SelectItem>
+                          <SelectItem value="Cancelado">Cancelado</SelectItem>
+                        </SelectContent>
+                      </Select>
+
+                      <Input
+                        label="Comentários"
+                        value={servico.comentarios}
+                        onChange={(e) => handleServicoChange(indice, 'comentarios', e.target.value)}
+                      />
+                    </div>
+
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleRemoverServico(indice)}
+                      className="mt-4"
+                    >
+                      Remover Serviço
+                    </Button>
                   </div>
                 ))}
+
+                <Button
+                  onClick={handleAdicionarServico}
+                  className="mt-4"
+                >
+                  Adicionar Novo Serviço
+                </Button>
               </div>
             </TabsContent>
           </Tabs>
@@ -541,12 +1024,21 @@ export default function ClientesPage() {
               disabled={
                 !clienteEditando?.nome ||
                 !clienteEditando.numeroIdentificacaoFiscal ||
+                !validarNIF(clienteEditando.numeroIdentificacaoFiscal) ||
                 !clienteEditando.contacto ||
                 !clienteEditando.email
               }
             >
               {clienteEditando?.id ? 'Salvar Alterações' : 'Criar Novo Cliente'}
             </Button>
+            {clienteEditando?.id && (
+              <Button
+                variant="destructive"
+                onClick={() => manipularExclusao(clienteEditando.id)}
+              >
+                Excluir
+              </Button>
+            )}
           </DialogFooter>
         </DialogContent>
       </Dialog>
