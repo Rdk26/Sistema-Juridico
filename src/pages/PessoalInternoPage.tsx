@@ -13,13 +13,16 @@ import {
   TrendingUp,
   Upload,
   Trash2,
-  FileText
+  FileText,
+  Edit,
+  Eye,
+  Download
 } from 'lucide-react';
 import { Skeleton } from '../components/Skeleton';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '../components/ui/Dialog';
+import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/Select';
-import { Button } from '../components/ui/Button';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '../components/ui/Tabs';
 import { ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 
@@ -48,10 +51,22 @@ type Documento = {
   nome: string;
   url: string;
   tipo: string;
+  dataUpload: string;
 };
 
 const departamentos = ['Administração', 'Jurídico', 'Recursos Humanos', 'TI', 'Financeiro'];
 const coresDepartamentos = ['#3B82F6', '#10B981', '#F59E0B', '#6366F1', '#8B5CF6'];
+
+// Lista de cargos disponíveis para seleção
+const cargos = [
+  'Gestor de Operações',
+  'Assistente Administrativo',
+  'Analista Jurídico', 
+  'Desenvolvedor Front-end',
+  'Contador Sénior',
+  'Especialista em RH',
+  'Advogado Corporativo'
+];
 
 const funcionariosMock: Funcionario[] = [
   {
@@ -71,7 +86,20 @@ const funcionariosMock: Funcionario[] = [
         dataFim: '2020-03-14'
       }
     ],
-    documentos: [],
+    documentos: [
+      {
+        nome: 'Contrato de Trabalho.pdf',
+        url: 'https://example.com/documentos/contrato.pdf',
+        tipo: 'application/pdf',
+        dataUpload: '2020-03-15'
+      },
+      {
+        nome: 'Identificação.pdf',
+        url: 'https://example.com/documentos/identificacao.pdf',
+        tipo: 'application/pdf',
+        dataUpload: '2020-03-15'
+      }
+    ],
   },
   {
     id: 2,
@@ -82,7 +110,14 @@ const funcionariosMock: Funcionario[] = [
     contacto: '+258 82 987 6543',
     status: 'ativo',
     historicoCargos: [],
-    documentos: [],
+    documentos: [
+      {
+        nome: 'Curriculum Vitae.pdf',
+        url: 'https://example.com/documentos/cv.pdf',
+        tipo: 'application/pdf',
+        dataUpload: '2022-07-15'
+      }
+    ],
   },
 ];
 
@@ -99,9 +134,23 @@ export default function PessoalInternoPage() {
   const [filtroTexto, setFiltroTexto] = useState('');
   const [filtroDepartamento, setFiltroDepartamento] = useState('todos');
   const [filtroStatus, setFiltroStatus] = useState('todos');
-  const [filtroDataContratacao, setFiltroDataContratacao] = useState('');
+  const [filtroDataInicio, setFiltroDataInicio] = useState('');
+  const [filtroDataFim, setFiltroDataFim] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [funcionarioEditando, setFuncionarioEditando] = useState<Funcionario | null>(null);
+  const [isViewModalOpen, setIsViewModalOpen] = useState(false);
+  const [funcionarioEditando, setFuncionarioEditando] = useState<Funcionario>({
+    id: 0,
+    nome: '',
+    cargo: '',
+    departamento: '',
+    dataContratacao: new Date().toISOString().split('T')[0],
+    contacto: '',
+    status: 'ativo',
+    historicoCargos: [],
+    documentos: [],
+    nif: ''
+  });
+  const [clienteVisualizando, setClienteVisualizando] = useState<Funcionario | null>(null);
   const [abaAtiva, setAbaAtiva] = useState('dados');
 
   useEffect(() => {
@@ -118,7 +167,9 @@ export default function PessoalInternoPage() {
 
     const correspondeDepartamento = filtroDepartamento === 'todos' || funcionario.departamento === filtroDepartamento;
     const correspondeStatus = filtroStatus === 'todos' || funcionario.status === filtroStatus;
-    const correspondeData = !filtroDataContratacao || funcionario.dataContratacao === filtroDataContratacao;
+    const correspondeData = !filtroDataInicio || !filtroDataFim || 
+      (new Date(funcionario.dataContratacao) >= new Date(filtroDataInicio) &&
+       new Date(funcionario.dataContratacao) <= new Date(filtroDataFim));
 
     return correspondeTexto && correspondeDepartamento && correspondeStatus && correspondeData;
   });
@@ -138,7 +189,18 @@ export default function PessoalInternoPage() {
       }]);
     }
     setIsModalOpen(false);
-    setFuncionarioEditando(null);
+    setFuncionarioEditando({
+      id: 0,
+      nome: '',
+      cargo: '',
+      departamento: '',
+      dataContratacao: new Date().toISOString().split('T')[0],
+      contacto: '',
+      status: 'ativo',
+      historicoCargos: [],
+      documentos: [],
+      nif: ''
+    });
   };
 
   const handleUploadDocumento = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -147,34 +209,59 @@ export default function PessoalInternoPage() {
       const novosDocumentos = Array.from(arquivos).map(arquivo => ({
         nome: arquivo.name,
         url: URL.createObjectURL(arquivo),
-        tipo: arquivo.type
+        tipo: arquivo.type,
+        dataUpload: new Date().toISOString().split('T')[0]
       }));
       
-      setFuncionarioEditando(anterior => anterior ? {
+      setFuncionarioEditando(anterior => ({
         ...anterior,
         documentos: [...anterior.documentos, ...novosDocumentos]
-      } : null);
+      }));
     }
   };
 
   const validarNIF = (nif: string) => {
-    return /^\d{9}$/.test(nif);
+    const nifLimpo = nif.replace(/\D/g, '');
+    return /^\d{9}$/.test(nifLimpo);
   };
 
   const formularioValido = Boolean(
-    funcionarioEditando?.nome &&
-    funcionarioEditando?.cargo &&
-    funcionarioEditando?.departamento &&
-    funcionarioEditando?.contacto &&
-    validarNIF(funcionarioEditando?.nif || '')
+    funcionarioEditando.nome &&
+    funcionarioEditando.cargo &&
+    funcionarioEditando.departamento &&
+    funcionarioEditando.contacto &&
+    validarNIF(funcionarioEditando.nif || '') &&
+    funcionarioEditando.historicoCargos.every(c => 
+      c.cargo && 
+      c.departamento && 
+      c.dataInicio
+    )
   );
+
+  const excluirFuncionario = (id: number) => {
+    if (window.confirm('Tem certeza que deseja excluir este funcionário?')) {
+      setFuncionarios(anterior => anterior.filter(f => f.id !== id));
+      setIsModalOpen(false);
+    }
+  };
 
   return (
     <main className="flex-1 overflow-auto p-6">
       <div className="mb-6 flex items-center justify-between">
         <h1 className="text-3xl font-bold texto-escuro">Pessoal Interno</h1>
         <Button onClick={() => {
-          setFuncionarioEditando(null);
+          setFuncionarioEditando({
+            id: 0,
+            nome: '',
+            cargo: '',
+            departamento: '',
+            dataContratacao: new Date().toISOString().split('T')[0],
+            contacto: '',
+            status: 'ativo',
+            historicoCargos: [],
+            documentos: [],
+            nif: ''
+          });
           setIsModalOpen(true);
         }}>
           <Plus className="w-4 h-4 mr-2" />
@@ -216,12 +303,23 @@ export default function PessoalInternoPage() {
           </SelectContent>
         </Select>
 
-        <Input
-          type="date"
-          value={filtroDataContratacao}
-          onChange={(evento) => setFiltroDataContratacao(evento.target.value)}
-          placeholder="Filtrar por data"
-        />
+        <div className="flex flex-col gap-2">
+          <label className="text-sm font-medium text-gray-700">Data Início</label>
+          <Input
+            type="date"
+            value={filtroDataInicio}
+            onChange={(evento) => setFiltroDataInicio(evento.target.value)}
+          />
+        </div>
+
+        <div className="flex flex-col gap-2">
+          <label className="text-sm font-medium text-gray-700">Data Fim</label>
+          <Input
+            type="date"
+            value={filtroDataFim}
+            onChange={(evento) => setFiltroDataFim(evento.target.value)}
+          />
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
@@ -328,6 +426,35 @@ export default function PessoalInternoPage() {
                     {funcionario.status.charAt(0).toUpperCase() + funcionario.status.slice(1)}
                   </span>
                 </div>
+                <div className="mt-4 flex gap-2">
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => { 
+                      setFuncionarioEditando(funcionario); 
+                      setIsModalOpen(true); 
+                    }}
+                  >
+                    <Edit className="w-4 h-4" />
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => {
+                      setClienteVisualizando(funcionario);
+                      setIsViewModalOpen(true);
+                    }}
+                  >
+                    <Eye className="w-4 h-4" />
+                  </Button>
+                  <Button 
+                    variant="destructive" 
+                    size="sm"
+                    onClick={() => excluirFuncionario(funcionario.id)}
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
+                </div>
               </div>
             </div>
           ))}
@@ -342,6 +469,7 @@ export default function PessoalInternoPage() {
               <th>Data de Contratação</th>
               <th>Contacto</th>
               <th>Status</th>
+              <th>Ações</th>
             </tr>
           </thead>
           <tbody>
@@ -349,10 +477,6 @@ export default function PessoalInternoPage() {
               <tr 
                 key={funcionario.id}
                 className="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800"
-                onClick={() => {
-                  setFuncionarioEditando(funcionario);
-                  setIsModalOpen(true);
-                }}
               >
                 <td>{funcionario.nome}</td>
                 <td>{funcionario.cargo}</td>
@@ -364,17 +488,215 @@ export default function PessoalInternoPage() {
                     {funcionario.status.toUpperCase()}
                   </span>
                 </td>
+                <td>
+                  <div className="flex gap-2">
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => { 
+                        setFuncionarioEditando(funcionario); 
+                        setIsModalOpen(true); 
+                      }}
+                    >
+                      <Edit className="w-4 h-4" />
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => {
+                        setClienteVisualizando(funcionario);
+                        setIsViewModalOpen(true);
+                      }}
+                    >
+                      <Eye className="w-4 h-4" />
+                    </Button>
+                    <Button 
+                      variant="destructive" 
+                      size="sm"
+                      onClick={() => excluirFuncionario(funcionario.id)}
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </div>
+                </td>
               </tr>
             ))}
           </tbody>
         </table>
       )}
 
+      {/* Modal de Visualização */}
+      <Dialog open={isViewModalOpen} onOpenChange={setIsViewModalOpen}>
+  <DialogContent className="sm:max-w-[800px] p-8">
+    <DialogHeader>
+      <DialogTitle>
+        <div className="text-2xl font-bold mb-6">
+          Dados do Funcionário
+        </div>
+      </DialogTitle>
+    </DialogHeader>
+    
+          
+          <div className="grid grid-cols-2 gap-8">
+            <div>
+              <div className="mb-6">
+                <h3 className="text-lg font-semibold mb-2">Informações Pessoais</h3>
+                <div className="space-y-4 p-4 border rounded-lg">
+                  <div className="flex flex-col">
+                    <span className="font-medium text-gray-600">Nome:</span>
+                    <span className="text-lg">{clienteVisualizando?.nome}</span>
+                  </div>
+                  <div className="flex flex-col">
+                    <span className="font-medium text-gray-600">Cargo:</span>
+                    <span className="text-lg">{clienteVisualizando?.cargo}</span>
+                  </div>
+                  <div className="flex flex-col">
+                    <span className="font-medium text-gray-600">Departamento:</span>
+                    <span className="text-lg">{clienteVisualizando?.departamento}</span>
+                  </div>
+                  <div className="flex flex-col">
+                    <span className="font-medium text-gray-600">Contacto:</span>
+                    <span className="text-lg">{clienteVisualizando?.contacto}</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="mb-6">
+                <h3 className="text-lg font-semibold mb-2">Informações de Contratação</h3>
+                <div className="space-y-4 p-4 border rounded-lg">
+                  <div className="flex flex-col">
+                    <span className="font-medium text-gray-600">Data de Contratação:</span>
+                    <span className="text-lg">
+                      {clienteVisualizando 
+                        ? new Date(clienteVisualizando.dataContratacao).toLocaleDateString('pt-MZ', 
+                            { day: '2-digit', month: 'long', year: 'numeric' })
+                        : ''}
+                    </span>
+                  </div>
+                  <div className="flex flex-col">
+                    <span className="font-medium text-gray-600">Status:</span>
+                    <span className={`px-2 py-1 rounded-full text-xs ${getStatusColor(clienteVisualizando?.status || 'ativo')}`}>
+                      {(clienteVisualizando?.status || 'ativo').toUpperCase()}
+                    </span>
+                  </div>
+                  <div className="flex flex-col">
+                    <span className="font-medium text-gray-600">Número de Identificação Fiscal:</span>
+                    <span className="text-lg">{clienteVisualizando?.nif}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <div className="mb-6">
+                <h3 className="text-lg font-semibold mb-2">Histórico de Cargos</h3>
+                {clienteVisualizando?.historicoCargos && clienteVisualizando.historicoCargos.length > 0 ? (
+                  clienteVisualizando.historicoCargos.map((cargo, index) => (
+                    <div key={index} className="p-4 border rounded-lg mb-4">
+                      <div className="flex flex-col">
+                        <span className="font-medium text-gray-600">Cargo:</span>
+                        <span className="text-lg font-semibold">{cargo.cargo}</span>
+                      </div>
+                      <div className="flex flex-col mt-2">
+                        <span className="font-medium text-gray-600">Departamento:</span>
+                        <span className="text-lg">{cargo.departamento}</span>
+                      </div>
+                      <div className="flex flex-col mt-2">
+                        <span className="font-medium text-gray-600">Período:</span>
+                        <span className="text-lg">
+                          {new Date(cargo.dataInicio).toLocaleDateString('pt-MZ', 
+                              { day: '2-digit', month: 'long', year: 'numeric' })} 
+                          - 
+                          {cargo.dataFim 
+                            ? new Date(cargo.dataFim).toLocaleDateString('pt-MZ', 
+                                { day: '2-digit', month: 'long', year: 'numeric' })
+                            : 'Atual'}
+                        </span>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <div className="p-4 border rounded-lg text-center">
+                    <p className="text-gray-500">Não há histórico de cargos para este funcionário</p>
+                  </div>
+                )}
+              </div>
+
+              <div className="mb-6">
+          <h3 className="text-lg font-semibold mb-2">Documentos</h3>
+          {clienteVisualizando?.documentos && clienteVisualizando.documentos.length > 0 ? (
+            <div className="space-y-2">
+              {clienteVisualizando.documentos.map((documento, index) => (
+                <div key={index} className="flex items-center p-3 border rounded-lg">
+                  <FileText className="w-5 h-5 mr-2 text-gray-500" />
+                  <div className="flex-1">
+                    <div className="font-medium text-gray-600">Nome:</div>
+                    <div className="text-sm">{documento.nome}</div>
+                    <div className="font-medium text-gray-600 mt-1">Tipo:</div>
+                    <div className="text-sm">{documento.tipo}</div>
+                    <div className="font-medium text-gray-600 mt-1">Data de Upload:</div>
+                    <div className="text-sm">
+                      {new Date(documento.dataUpload).toLocaleDateString('pt-MZ')}
+                    </div>
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="ml-2"
+                    onClick={() => {
+                      // Implementação completa do download
+                      const link = document.createElement('a');
+                      link.href = documento.url;
+                      link.download = documento.nome;
+                      document.body.appendChild(link);
+                      link.click();
+                      document.body.removeChild(link);
+
+                      // Para URLs externas, podemos precisar de uma lógica adicional:
+                      if (documento.url.startsWith('http')) {
+                        fetch(documento.url)
+                          .then(response => response.blob())
+                          .then(blob => {
+                            const url = window.URL.createObjectURL(blob);
+                            link.href = url;
+                            link.download = documento.nome;
+                            document.body.appendChild(link);
+                            link.click();
+                            window.URL.revokeObjectURL(url);
+                            document.body.removeChild(link);
+                          })
+                          .catch(error => console.error('Erro no download:', error));
+                      }
+                    }}
+                  >
+                    <Download className="w-4 h-4" />
+                  </Button>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="p-4 border rounded-lg text-center">
+              <p className="text-gray-500">Não há documentos associados a este funcionário</p>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+          
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsViewModalOpen(false)}>
+              Fechar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal de Edição */}
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
         <DialogContent className="sm:max-w-[800px]">
           <DialogHeader>
             <DialogTitle>
-              {funcionarioEditando ? 'Editar Funcionário' : 'Novo Funcionário'}
+              {funcionarioEditando.id === 0 ? 'Novo Funcionário' : 'Editar Funcionário'}
             </DialogTitle>
           </DialogHeader>
 
@@ -389,27 +711,38 @@ export default function PessoalInternoPage() {
               <div className="grid gap-4 py-4">
                 <Input
                   label="Nome Completo *"
-                  value={funcionarioEditando?.nome || ''}
+                  value={funcionarioEditando.nome}
                   onChange={(evento) => setFuncionarioEditando(anterior => ({ 
-                    ...anterior!, 
+                    ...anterior, 
                     nome: evento.target.value 
                   }))}
                 />
 
                 <div className="grid grid-cols-2 gap-4">
-                  <Input
-                    label="Cargo *"
-                    value={funcionarioEditando?.cargo || ''}
-                    onChange={(evento) => setFuncionarioEditando(anterior => ({ 
-                      ...anterior!, 
-                      cargo: evento.target.value 
+                  {/* Select para Cargo */}
+                  <Select
+                    value={funcionarioEditando.cargo}
+                    onValueChange={(valor) => setFuncionarioEditando(anterior => ({ 
+                      ...anterior, 
+                      cargo: valor 
                     }))}
-                  />
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione o Cargo" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {cargos.map((cargoOption) => (
+                        <SelectItem key={cargoOption} value={cargoOption}>
+                          {cargoOption}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
 
                   <Select
-                    value={funcionarioEditando?.departamento || ''}
+                    value={funcionarioEditando.departamento}
                     onValueChange={(valor) => setFuncionarioEditando(anterior => ({ 
-                      ...anterior!, 
+                      ...anterior, 
                       departamento: valor 
                     }))}
                   >
@@ -429,22 +762,31 @@ export default function PessoalInternoPage() {
                 <div className="grid grid-cols-2 gap-4">
                   <Input
                     label="Contacto *"
-                    value={funcionarioEditando?.contacto || ''}
+                    value={funcionarioEditando.contacto}
                     onChange={(evento) => setFuncionarioEditando(anterior => ({ 
-                      ...anterior!, 
+                      ...anterior, 
                       contacto: evento.target.value 
                     }))}
                   />
 
                   <Input
                     label="Número de Identificação Fiscal *"
-                    value={funcionarioEditando?.nif || ''}
-                    onChange={(evento) => setFuncionarioEditando(anterior => ({ 
-                      ...anterior!, 
-                      nif: evento.target.value 
-                    }))}
+                    value={funcionarioEditando.nif || ''}
+                    onChange={(e) => {
+                      const valor = e.target.value
+                        .replace(/\D/g, '')
+                        .replace(/(\d{3})(\d{3})(\d{3})/, '$1 $2 $3')
+                        .trim()
+                        .slice(0, 11);
+                        
+                      setFuncionarioEditando(prev => ({
+                        ...prev,
+                        nif: valor
+                      }));
+                    }}
+                    placeholder="Ex: 123 456 789"
                   />
-                  {funcionarioEditando?.nif && !validarNIF(funcionarioEditando.nif) && (
+                  {funcionarioEditando.nif && !validarNIF(funcionarioEditando.nif) && (
                     <span className="text-red-500 text-sm">NIF inválido (deve conter 9 dígitos)</span>
                   )}
                 </div>
@@ -453,27 +795,85 @@ export default function PessoalInternoPage() {
 
             <TabsContent value="historico">
               <div className="space-y-4 py-4">
-                {funcionarioEditando?.historicoCargos.map((cargo, indice) => (
+                {funcionarioEditando.historicoCargos.map((cargo, indice) => (
                   <div key={indice} className="card-juridico p-4">
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <h4 className="font-medium">{cargo.cargo}</h4>
-                        <p className="text-sm">{cargo.departamento}</p>
-                        <p className="text-xs text-gray-500">
-                          {new Date(cargo.dataInicio).toLocaleDateString('pt-MZ')} - 
-                          {cargo.dataFim ? new Date(cargo.dataFim).toLocaleDateString('pt-MZ') : 'Atual'}
-                        </p>
+                    <div className="flex flex-col gap-3">
+                      <div className="grid grid-cols-2 gap-4">
+                        {/* Select para Cargo Anterior */}
+                        <Select
+                          value={cargo.cargo}
+                          onValueChange={(valor) => {
+                            const novosCargos = [...funcionarioEditando.historicoCargos];
+                            novosCargos[indice].cargo = valor;
+                            setFuncionarioEditando(prev => ({...prev, historicoCargos: novosCargos}));
+                          }}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Selecione o cargo anterior" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {cargos.map((cargoOption) => (
+                              <SelectItem key={cargoOption} value={cargoOption}>
+                                {cargoOption}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+
+                        {/* Select para Departamento Anterior */}
+                        <Select
+                          value={cargo.departamento}
+                          onValueChange={(valor) => {
+                            const novosCargos = [...funcionarioEditando.historicoCargos];
+                            novosCargos[indice].departamento = valor;
+                            setFuncionarioEditando(prev => ({...prev, historicoCargos: novosCargos}));
+                          }}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Selecione o departamento anterior" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {departamentos.map((departamento) => (
+                              <SelectItem key={departamento} value={departamento}>
+                                {departamento}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
                       </div>
+
+                      {/* Restante do código para datas... */}
+                      <div className="grid grid-cols-2 gap-4">
+                        <Input
+                          type="date"
+                          label="Data Início *"
+                          value={cargo.dataInicio}
+                          onChange={(e) => {
+                            const novosCargos = [...funcionarioEditando.historicoCargos];
+                            novosCargos[indice].dataInicio = e.target.value;
+                            setFuncionarioEditando(prev => ({...prev, historicoCargos: novosCargos}));
+                          }}
+                        />
+                        
+                        <Input
+                          type="date"
+                          label="Data Fim"
+                          value={cargo.dataFim || ''}
+                          onChange={(e) => {
+                            const novosCargos = [...funcionarioEditando.historicoCargos];
+                            novosCargos[indice].dataFim = e.target.value || null;
+                            setFuncionarioEditando(prev => ({...prev, historicoCargos: novosCargos}));
+                          }}
+                        />
+                      </div>
+
                       <Button
                         variant="outline"
                         size="sm"
                         onClick={() => {
-                          const novoHistorico = funcionarioEditando.historicoCargos
+                          const novosCargos = funcionarioEditando.historicoCargos
                             .filter((_, index) => index !== indice);
-                          setFuncionarioEditando(anterior => ({ 
-                            ...anterior!, 
-                            historicoCargos: novoHistorico 
-                          }));
+                          setFuncionarioEditando(prev => ({...prev, historicoCargos: novosCargos}));
                         }}
                       >
                         Remover
@@ -481,6 +881,7 @@ export default function PessoalInternoPage() {
                     </div>
                   </div>
                 ))}
+                
                 <Button
                   onClick={() => {
                     const novoCargo = {
@@ -490,9 +891,9 @@ export default function PessoalInternoPage() {
                       dataInicio: new Date().toISOString().split('T')[0],
                       dataFim: null
                     };
-                    setFuncionarioEditando(anterior => ({
-                      ...anterior!,
-                      historicoCargos: [...anterior!.historicoCargos, novoCargo]
+                    setFuncionarioEditando(prev => ({
+                      ...prev,
+                      historicoCargos: [...prev.historicoCargos, novoCargo]
                     }));
                   }}
                 >
@@ -519,7 +920,7 @@ export default function PessoalInternoPage() {
                 </label>
 
                 <div className="grid grid-cols-2 gap-2">
-                  {funcionarioEditando?.documentos?.map((documento, indice) => (
+                  {funcionarioEditando.documentos.map((documento, indice) => (
                     <div key={indice} className="card-juridico p-2 flex items-center gap-2">
                       <FileText className="w-4 h-4" />
                       <span className="text-sm flex-1">{documento.nome}</span>
@@ -530,7 +931,7 @@ export default function PessoalInternoPage() {
                           const novosDocumentos = funcionarioEditando.documentos
                             .filter((_, index) => index !== indice);
                           setFuncionarioEditando(anterior => ({ 
-                            ...anterior!, 
+                            ...anterior, 
                             documentos: novosDocumentos 
                           }));
                         }}
@@ -549,11 +950,30 @@ export default function PessoalInternoPage() {
               Cancelar
             </Button>
             <Button
-              onClick={() => funcionarioEditando && handleSubmeter(funcionarioEditando)}
+              onClick={() => handleSubmeter(funcionarioEditando)}
               disabled={!formularioValido}
+              className="relative"
             >
-              {funcionarioEditando ? 'Salvar Alterações' : 'Criar Funcionário'}
+              {funcionarioEditando.id === 0 ? 'Criar Funcionário' : 'Salvar Alterações'}
+              {!formularioValido && (
+                <div className="absolute -right-2 -top-2">
+                  <span className="relative flex h-5 w-5">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-5 w-5 bg-red-500 text-white text-xs items-center justify-center">
+                      !
+                    </span>
+                  </span>
+                </div>
+              )}
             </Button>
+            {funcionarioEditando.id !== 0 && (
+              <Button
+                variant="destructive"
+                onClick={() => excluirFuncionario(funcionarioEditando.id)}
+              >
+                Excluir
+              </Button>
+            )}
           </DialogFooter>
         </DialogContent>
       </Dialog>
