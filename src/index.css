@@ -56,3 +56,7 @@ input:invalid, select:invalid {
   border-color: #f87171;
   box-shadow: 0 0 0 1px #f87171;
 }
+.border-red-500 {
+  border-color: #ef4444;
+  box-shadow: 0 0 0 1px #ef4444;
+}

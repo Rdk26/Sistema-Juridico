@@ -11,7 +11,11 @@ import {
   XCircle,
   AlertCircle,
   FileText,
-  Upload
+  Upload,
+  Trash2,
+  Eye,
+  Edit,
+  Download
 } from 'lucide-react';
 import { Skeleton } from '../components/Skeleton';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '../components/ui/Dialog';
@@ -20,6 +24,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { format, parseISO, differenceInDays } from 'date-fns';
 import { pt } from 'date-fns/locale';
 import { Button } from '../components/ui/Button';
+import { Textarea } from '../components/ui/Textarea';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '../components/ui/Tabs';
 
 type Notificacao = {
   id: number;
@@ -104,6 +110,23 @@ export default function NotificacoesPage() {
   const [filtroData, setFiltroData] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [notificacaoEditando, setNotificacaoEditando] = useState<Notificacao | null>(null);
+  const [notificacaoVisualizando, setNotificacaoVisualizando] = useState<Notificacao | null>(null);
+  const [erros, setErros] = useState<{ [key: string]: string }>({});
+  const [abaAtiva, setAbaAtiva] = useState('dados');
+
+  const novaNotificacaoPadrao: Notificacao = {
+    id: 0,
+    numeroProcesso: '',
+    descricao: '',
+    dataNotificacao: new Date().toISOString().split('T')[0],
+    partesEnvolvidas: [],
+    tipo: 'notificação',
+    status: 'pendente',
+    prioridade: 'baixa',
+    prazo: '',
+    tribunal: '',
+    anexos: []
+  };
 
   useEffect(() => {
     setTimeout(() => {
@@ -128,78 +151,109 @@ export default function NotificacoesPage() {
     return matchesTexto && matchesTipo && matchesStatus && matchesData;
   });
 
-  const handleSubmit = (notificacao: Notificacao) => {
-    if (notificacao.id) {
-      setNotificacoes(prev => prev.map(n => n.id === notificacao.id ? notificacao : n));
-    } else {
-      setNotificacoes(prev => [...prev, { 
-        ...notificacao, 
-        id: Math.max(...prev.map(n => n.id), 0) + 1 
-      }]);
+  const validarCampos = (notificacao: Notificacao) => {
+    const novosErros: { [key: string]: string } = {};
+    
+    if (!notificacao.numeroProcesso?.trim()) novosErros.numeroProcesso = "Campo obrigatório";
+    if (!notificacao.descricao?.trim()) novosErros.descricao = "Campo obrigatório";
+    if (!notificacao.prazo) novosErros.prazo = "Campo obrigatório";
+    if (!notificacao.tribunal?.trim()) novosErros.tribunal = "Campo obrigatório";
+    
+    setErros(novosErros);
+    return Object.keys(novosErros).length === 0;
+  };
+
+  const handleSubmit = () => {
+    if (!notificacaoEditando) return;
+
+    if (validarCampos(notificacaoEditando)) {
+      setNotificacoes(prev => {
+        if (notificacaoEditando.id === 0) {
+          // Criar nova notificação
+          const novoId = prev.length > 0 ? Math.max(...prev.map(n => n.id)) + 1 : 1;
+          return [...prev, { ...notificacaoEditando, id: novoId }];
+        } else {
+          // Editar existente
+          return prev.map(n => n.id === notificacaoEditando.id ? notificacaoEditando : n);
+        }
+      });
+      setIsModalOpen(false);
+      setNotificacaoEditando(null);
     }
-    setIsModalOpen(false);
-    setNotificacaoEditando(null);
   };
 
   const handleAdicionarParte = () => {
     setNotificacaoEditando(prev => ({
-      ...(prev || {
-        id: 0,
-        numeroProcesso: '',
-        descricao: '',
-        dataNotificacao: new Date().toISOString().split('T')[0],
-        partesEnvolvidas: [],
-        tipo: 'notificação',
-        status: 'pendente',
-        prioridade: 'baixa',
-        prazo: '',
-        tribunal: '',
-        anexos: []
-      }),
+      ...(prev || novaNotificacaoPadrao),
       partesEnvolvidas: [...(prev?.partesEnvolvidas || []), '']
     }));
   };
 
   const handleRemoverParte = (index: number) => {
-    const novasPartes = notificacaoEditando?.partesEnvolvidas.filter((_, i) => i !== index) || [];
-    setNotificacaoEditando(prev => prev ? { ...prev, partesEnvolvidas: novasPartes } : null);
+    setNotificacaoEditando(prev => {
+      if (!prev) return null;
+      const novasPartes = [...prev.partesEnvolvidas];
+      novasPartes.splice(index, 1);
+      return { ...prev, partesEnvolvidas: novasPartes };
+    });
   };
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
-    if (files && files.length > 0) {
+    if (files && files.length > 0 && notificacaoEditando) {
       const novosAnexos = Array.from(files).map(file => ({
         nome: file.name,
         url: URL.createObjectURL(file)
       }));
       
-      setNotificacaoEditando(prev => prev ? {
-        ...prev,
-        anexos: [...prev.anexos, ...novosAnexos]
-      } : null);
+      setNotificacaoEditando({
+        ...notificacaoEditando,
+        anexos: [...notificacaoEditando.anexos, ...novosAnexos]
+      });
     }
   };
 
   const handleRemoverAnexo = (index: number) => {
-    const novosAnexos = notificacaoEditando?.anexos.filter((_, i) => i !== index) || [];
-    setNotificacaoEditando(prev => prev ? { ...prev, anexos: novosAnexos } : null);
+    setNotificacaoEditando(prev => {
+      if (!prev) return null;
+      const novosAnexos = [...prev.anexos];
+      novosAnexos.splice(index, 1);
+      return { ...prev, anexos: novosAnexos };
+    });
   };
 
-  const isFormularioValido = Boolean(
-    notificacaoEditando?.numeroProcesso &&
-    notificacaoEditando?.descricao &&
-    notificacaoEditando?.prazo &&
-    notificacaoEditando?.tribunal
-  );
+  const handleVisualizar = (notificacao: Notificacao) => {
+    setNotificacaoVisualizando(notificacao);
+  };
+
+  const handleApagar = (id: number) => {
+    if (confirm('Tem certeza que deseja excluir esta notificação?')) {
+      setNotificacoes(prev => prev.filter(n => n.id !== id));
+    }
+  };
+
+  const handleDownloadDocumento = (anexo: { nome: string; url: string }) => {
+    // Implementação completa do download
+    const link = document.createElement('a');
+    link.href = anexo.url;
+    link.download = anexo.nome;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const isFormularioValido = Object.keys(erros).length === 0;
 
   return (
     <main className="flex-1 overflow-auto p-6">
+      {/* Cabeçalho e Filtros */}
       <div className="mb-6 flex items-center justify-between">
         <h1 className="text-3xl font-bold texto-escuro">Notificações</h1>
         <Button 
           onClick={() => {
-            setNotificacaoEditando(null);
+            setNotificacaoEditando({ ...novaNotificacaoPadrao });
             setIsModalOpen(true);
+            setErros({});
           }}
         >
           <Plus className="w-4 h-4 mr-2" />
@@ -208,15 +262,15 @@ export default function NotificacoesPage() {
       </div>
 
       <div className="mb-6 grid grid-cols-1 md:grid-cols-4 gap-4">
-  <div className="relative flex items-center">
-    <Search className="absolute left-3 w-5 h-5 text-gray-400" />
-    <Input
-      placeholder="Pesquisar..."
-      value={filtroTexto}
-      onChange={(e) => setFiltroTexto(e.target.value)}
-      className="pl-10"
-    />
-  </div>
+        <div className="relative flex items-center">
+          <Search className="absolute left-3 w-5 h-5 text-gray-400" />
+          <Input
+            placeholder="Pesquisar..."
+            value={filtroTexto}
+            onChange={(e) => setFiltroTexto(e.target.value)}
+            className="pl-10"
+          />
+        </div>
 
         <Select value={filtroTipo} onValueChange={setFiltroTipo}>
           <SelectTrigger>
@@ -250,6 +304,7 @@ export default function NotificacoesPage() {
         />
       </div>
 
+      {/* Listagem de Notificações */}
       {isLoading ? (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
           {[...Array(6)].map((_, index) => (
@@ -263,6 +318,7 @@ export default function NotificacoesPage() {
               key={notificacao.id}
               className="card-juridico p-4 hover:shadow-lg transition-shadow relative"
             >
+              {/* Alerta de prazo próximo */}
               {isPrazoProximo(notificacao.prazo) && (
                 <div className="absolute top-2 right-2 animate-pulse">
                   <AlertCircle className="w-5 h-5 text-red-500" />
@@ -274,20 +330,49 @@ export default function NotificacoesPage() {
                   {getStatusIcon(notificacao.status)}
                   <h3 className="font-semibold">{notificacao.numeroProcesso}</h3>
                 </div>
-                <span className={`px-2 py-1 text-xs rounded-full ${getStatusColor(notificacao.status)}`}>
-                  {notificacao.status.toUpperCase()}
-                </span>
+                <div className="flex items-center gap-2">
+                  <span className={`px-2 py-1 text-xs rounded-full ${getStatusColor(notificacao.status)}`}>
+                    {notificacao.status.toUpperCase()}
+                  </span>
+                  <div className="flex gap-1 ml-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleVisualizar(notificacao)}
+                    >
+                      <Eye className="w-4 h-4 text-blue-600" />
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        setNotificacaoEditando(notificacao);
+                        setIsModalOpen(true);
+                      }}
+                    >
+                      <Edit className="w-4 h-4 text-gray-600" />
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleApagar(notificacao.id)}
+                    >
+                      <Trash2 className="w-4 h-4 text-red-600" />
+                    </Button>
+                  </div>
+                </div>
               </div>
 
-              <p className="text-sm mb-4 line-clamp-3">{notificacao.descricao}</p>
-
-              <div className="space-y-2 text-sm">
-                <div className="flex items-center gap-2">
+              {/* Corpo do Card */}
+              <div className="space-y-2">
+                <p className="text-sm mb-4 line-clamp-3">{notificacao.descricao}</p>
+                
+                <div className="flex items-center gap-2 text-sm">
                   <Gavel className="w-4 h-4" />
                   <span>{notificacao.tribunal}</span>
                 </div>
 
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 text-sm">
                   <CalendarClock className="w-4 h-4" />
                   <span>Prazo: {formatarData(notificacao.prazo)}</span>
                 </div>
@@ -297,15 +382,361 @@ export default function NotificacoesPage() {
                     Prioridade: {notificacao.prioridade.toUpperCase()}
                   </span>
                 </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
 
-                {notificacao.anexos.length > 0 && (
-                  <div className="mt-2 border-t pt-2">
-                    <p className="text-xs font-medium mb-1">Anexos:</p>
-                    <div className="flex flex-wrap gap-1">
-                      {notificacao.anexos.map((anexo, index) => (
-                        <div key={index} className="flex items-center gap-1 bg-gray-100 px-2 py-1 rounded">
+      {/* Modal de Edição/Criação */}
+      <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
+        <DialogContent className="sm:max-w-[700px]">
+          <DialogHeader>
+            <div className="text-2xl font-bold">
+              <DialogTitle>
+                {notificacaoEditando?.id === 0 ? 'Nova Notificação' : 'Editar Notificação'}
+              </DialogTitle>
+            </div>
+          </DialogHeader>
+
+          <Tabs value={abaAtiva} onValueChange={setAbaAtiva}>
+            <TabsList className="grid grid-cols-2">
+              <TabsTrigger value="dados">Dados Principais</TabsTrigger>
+              <TabsTrigger value="anexos">Anexos</TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="dados">
+              <div className="grid gap-4 py-4">
+                <Input
+                  label="Número do Processo *"
+                  value={notificacaoEditando?.numeroProcesso || ''}
+                  onChange={(e) => {
+                    setErros(prev => ({ ...prev, numeroProcesso: '' }));
+                    setNotificacaoEditando(prev => ({
+                      ...(prev || novaNotificacaoPadrao),
+                      numeroProcesso: e.target.value
+                    }));
+                  }}
+                  className={erros.numeroProcesso ? 'border-red-500' : ''}
+                />
+
+                <Textarea
+                  label="Descrição *"
+                  value={notificacaoEditando?.descricao || ''}
+                  onChange={(e) => {
+                    setErros(prev => ({ ...prev, descricao: '' }));
+                    setNotificacaoEditando(prev => ({
+                      ...prev!,
+                      descricao: e.target.value
+                    }));
+                  }}
+                  className={erros.descricao ? 'border-red-500' : ''}
+                />
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Input
+                      label="Tipo *"
+                      className="hidden"
+                    />
+                    <Select
+                      value={notificacaoEditando?.tipo || 'notificação'}
+                      onValueChange={(value) => setNotificacaoEditando(prev => ({
+                        ...prev!,
+                        tipo: value as 'citação' | 'notificação' | 'diligência'
+                      }))}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecione o tipo" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="notificação">Notificação</SelectItem>
+                        <SelectItem value="citação">Citação</SelectItem>
+                        <SelectItem value="diligência">Diligência</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Input
+                      label="Prioridade *"
+                      className="hidden"
+                    />
+                    <Select
+                      value={notificacaoEditando?.prioridade || 'baixa'}
+                      onValueChange={(value) => setNotificacaoEditando(prev => ({
+                        ...prev!,
+                        prioridade: value as 'baixa' | 'média' | 'alta'
+                      }))}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecione a prioridade" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="baixa">Baixa</SelectItem>
+                        <SelectItem value="média">Média</SelectItem>
+                        <SelectItem value="alta">Alta</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <Input
+                    label="Data da Notificação *"
+                    type="date"
+                    value={notificacaoEditando?.dataNotificacao || ''}
+                    onChange={(e) => setNotificacaoEditando(prev => ({
+                      ...prev!,
+                      dataNotificacao: e.target.value
+                    }))}
+                    className={erros.dataNotificacao ? 'border-red-500' : ''}
+                  />
+
+                  <Input
+                    label="Prazo *"
+                    type="date"
+                    value={notificacaoEditando?.prazo || ''}
+                    onChange={(e) => {
+                      setErros(prev => ({ ...prev, prazo: '' }));
+                      setNotificacaoEditando(prev => ({
+                        ...prev!,
+                        prazo: e.target.value
+                      }));
+                    }}
+                    className={erros.prazo ? 'border-red-500' : ''}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Input
+                    label="Partes Envolvidas"
+                    className="hidden"
+                  />
+                  <div className="card-juridico p-4 flex flex-wrap gap-2">
+                    {notificacaoEditando?.partesEnvolvidas.map((parte, index) => (
+                      <div key={index} className="bg-gray-50 px-2 py-1 rounded-full flex items-center gap-1">
+                        <User className="w-3 h-3" />
+                        <input
+                          value={parte}
+                          onChange={(e) => {
+                            setNotificacaoEditando(prev => {
+                              if (!prev) return null;
+                              const novasPartes = [...prev.partesEnvolvidas];
+                              novasPartes[index] = e.target.value;
+                              return { ...prev, partesEnvolvidas: novasPartes };
+                            });
+                          }}
+                          className="bg-transparent outline-none text-sm"
+                        />
+                        <button
+                          onClick={() => handleRemoverParte(index)}
+                          className="text-red-500 hover:text-red-700 ml-1"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    ))}
+                    <button
+                      onClick={handleAdicionarParte}
+                      className="text-primary hover:text-primary-dark flex items-center gap-1 text-sm"
+                    >
+                      <Plus className="w-4 h-4" />
+                      Adicionar Parte
+                    </button>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Input
+                    label="Status *"
+                    className="hidden"
+                  />
+                  <Select
+                    value={notificacaoEditando?.status || 'pendente'}
+                    onValueChange={(value) => setNotificacaoEditando(prev => ({
+                      ...prev!,
+                      status: value as 'pendente' | 'cumprida' | 'expirada'
+                    }))}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione o status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="pendente">Pendente</SelectItem>
+                      <SelectItem value="cumprida">Cumprida</SelectItem>
+                      <SelectItem value="expirada">Expirada</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <Input
+                  label="Tribunal *"
+                  value={notificacaoEditando?.tribunal || ''}
+                  onChange={(e) => {
+                    setErros(prev => ({ ...prev, tribunal: '' }));
+                    setNotificacaoEditando(prev => ({
+                      ...prev!,
+                      tribunal: e.target.value
+                    }));
+                  }}
+                  className={erros.tribunal ? 'border-red-500' : ''}
+                />
+              </div>
+            </TabsContent>
+
+            <TabsContent value="anexos">
+              <div className="space-y-4 py-4">
+                <div className="card-juridico p-4 space-y-2">
+                  <input
+                    type="file"
+                    onChange={handleFileUpload}
+                    className="hidden"
+                    id="file-upload"
+                    multiple
+                  />
+                  <label 
+                    htmlFor="file-upload"
+                    className="btn-primary flex items-center gap-2 cursor-pointer text-sm"
+                  >
+                    <Upload className="w-4 h-4" />
+                    Adicionar Anexo
+                  </label>
+                  <div className="flex flex-wrap gap-2 mt-2">
+                    {notificacaoEditando?.anexos?.map((anexo, index) => (
+                      <div key={index} className="flex items-center gap-1 bg-gray-100 px-2 py-1 rounded">
+                        <FileText className="w-3 h-3" />
+                        <span className="text-xs">{anexo.nome}</span>
+                        <div className="flex gap-1">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleDownloadDocumento(anexo)}
+                          >
+                            <Download className="w-4 h-4" />
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleRemoverAnexo(index)}
+                          >
+                            <Trash2 className="w-4 h-4 text-red-600" />
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </TabsContent>
+          </Tabs>
+
+          <DialogFooter>
+            <Button 
+              variant="outline" 
+              onClick={() => {
+                setIsModalOpen(false);
+                setNotificacaoEditando(null);
+              }}
+            >
+              Cancelar
+            </Button>
+            <Button
+              onClick={handleSubmit}
+              disabled={!isFormularioValido}
+              className="relative"
+            >
+              {notificacaoEditando?.id === 0 ? 'Criar Notificação' : 'Salvar Alterações'}
+              {!isFormularioValido && (
+                <span className="absolute -right-2 -top-2 animate-ping inline-flex h-5 w-5 rounded-full bg-red-400 opacity-75"></span>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal de Visualização */}
+      <Dialog open={!!notificacaoVisualizando} onOpenChange={() => setNotificacaoVisualizando(null)}>
+        <DialogContent className="sm:max-w-[600px]">
+          <DialogHeader>
+            <div className="text-2xl font-bold">
+              <DialogTitle>Detalhes da Notificação</DialogTitle>
+            </div>
+          </DialogHeader>
+          
+          {notificacaoVisualizando && (
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-4">
+                <div>
+                  <Input label="Número do Processo" className="hidden" />
+                  <p className="text-gray-600">{notificacaoVisualizando.numeroProcesso}</p>
+                </div>
+
+                <div>
+                  <Input label="Status" className="hidden" />
+                  <p className={`${getStatusColor(notificacaoVisualizando.status)} px-2 py-1 rounded-full text-xs`}>
+                    {notificacaoVisualizando.status.toUpperCase()}
+                  </p>
+                </div>
+
+                <div>
+                  <Input label="Tipo" className="hidden" />
+                  <p className="text-gray-600">{notificacaoVisualizando.tipo}</p>
+                </div>
+
+                <div>
+                  <Input label="Prioridade" className="hidden" />
+                  <p className="text-gray-600">{notificacaoVisualizando.prioridade}</p>
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <div>
+                  <Input label="Data da Notificação" className="hidden" />
+                  <p className="text-gray-600">{formatarData(notificacaoVisualizando.dataNotificacao)}</p>
+                </div>
+
+                <div>
+                  <Input label="Prazo" className="hidden" />
+                  <p className="text-gray-600">{formatarData(notificacaoVisualizando.prazo)}</p>
+                </div>
+
+                <div>
+                  <Input label="Tribunal" className="hidden" />
+                  <p className="text-gray-600">{notificacaoVisualizando.tribunal}</p>
+                </div>
+              </div>
+
+              {/* Seções para Partes Envolvidas e Anexos */}
+              <div className="col-span-2 space-y-4">
+                {notificacaoVisualizando.partesEnvolvidas.length > 0 && (
+                  <div>
+                    <Input label="Partes Envolvidas" className="hidden" />
+                    <div className="flex flex-wrap gap-2 mt-2">
+                      {notificacaoVisualizando.partesEnvolvidas.map((parte, index) => (
+                        <div key={index} className="bg-gray-100 px-2 py-1 rounded">
+                          <span className="text-xs">{parte}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {notificacaoVisualizando.anexos.length > 0 && (
+                  <div>
+                    <Input label="Anexos" className="hidden" />
+                    <div className="flex flex-wrap gap-2 mt-2">
+                      {notificacaoVisualizando.anexos.map((anexo, index) => (
+                        <div key={index} className="bg-gray-100 px-2 py-1 rounded flex items-center gap-2">
                           <FileText className="w-3 h-3" />
                           <span className="text-xs">{anexo.nome}</span>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleDownloadDocumento(anexo)}
+                          >
+                            <Download className="w-4 h-4" />
+                          </Button>
                         </div>
                       ))}
                     </div>
@@ -313,207 +744,7 @@ export default function NotificacoesPage() {
                 )}
               </div>
             </div>
-          ))}
-        </div>
-      )}
-
-      <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-        <DialogContent className="sm:max-w-[700px]">
-          <DialogHeader>
-            <DialogTitle>
-              {notificacaoEditando ? 'Editar Notificação' : 'Nova Notificação'}
-            </DialogTitle>
-          </DialogHeader>
-
-          <div className="grid gap-4 py-4">
-            <Input
-              label="Número do Processo *"
-              value={notificacaoEditando?.numeroProcesso || ''}
-              onChange={(e) => setNotificacaoEditando(prev => ({
-                ...(prev || {
-                  id: 0,
-                  numeroProcesso: '',
-                  descricao: '',
-                  dataNotificacao: new Date().toISOString().split('T')[0],
-                  partesEnvolvidas: [],
-                  tipo: 'notificação',
-                  status: 'pendente',
-                  prioridade: 'baixa',
-                  prazo: '',
-                  tribunal: '',
-                  anexos: []
-                }),
-                numeroProcesso: e.target.value
-              }))}
-            />
-
-            <Input
-              label="Descrição *"
-              value={notificacaoEditando?.descricao || ''}
-              onChange={(e) => setNotificacaoEditando(prev => ({
-                ...prev!,
-                descricao: e.target.value
-              }))}
-            />
-
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Tipo *</label>
-                <Select
-                  value={notificacaoEditando?.tipo || 'notificação'}
-                  onValueChange={(value) => setNotificacaoEditando(prev => ({
-                    ...prev!,
-                    tipo: value as 'citação' | 'notificação' | 'diligência'
-                  }))}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecione o tipo" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="notificação">Notificação</SelectItem>
-                    <SelectItem value="citação">Citação</SelectItem>
-                    <SelectItem value="diligência">Diligência</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Prioridade *</label>
-                <Select
-                  value={notificacaoEditando?.prioridade || 'baixa'}
-                  onValueChange={(value) => setNotificacaoEditando(prev => ({
-                    ...prev!,
-                    prioridade: value as 'baixa' | 'média' | 'alta'
-                  }))}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecione a prioridade" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="baixa">Baixa</SelectItem>
-                    <SelectItem value="média">Média</SelectItem>
-                    <SelectItem value="alta">Alta</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <Input
-                label="Data da Notificação *"
-                type="date"
-                value={notificacaoEditando?.dataNotificacao || ''}
-                onChange={(e) => setNotificacaoEditando(prev => ({
-                  ...prev!,
-                  dataNotificacao: e.target.value
-                }))}
-              />
-
-              <Input
-                label="Prazo *"
-                type="date"
-                value={notificacaoEditando?.prazo || ''}
-                onChange={(e) => setNotificacaoEditando(prev => ({
-                  ...prev!,
-                  prazo: e.target.value
-                }))}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Partes Envolvidas</label>
-              <div className="card-juridico p-4 flex flex-wrap gap-2">
-                {notificacaoEditando?.partesEnvolvidas.map((parte, index) => (
-                  <div key={index} className="bg-primary/10 px-2 py-1 rounded-full flex items-center gap-1">
-                    <User className="w-3 h-3" />
-                    <input
-                      value={parte}
-                      onChange={(e) => {
-                        const novasPartes = [...notificacaoEditando.partesEnvolvidas];
-                        novasPartes[index] = e.target.value;
-                        setNotificacaoEditando(prev => ({
-                          ...prev!,
-                          partesEnvolvidas: novasPartes
-                        }));
-                      }}
-                      className="bg-transparent outline-none text-sm"
-                    />
-                    <button
-                      onClick={() => handleRemoverParte(index)}
-                      className="text-red-500 hover:text-red-700 ml-1"
-                    >
-                      ×
-                    </button>
-                  </div>
-                ))}
-                <button
-                  onClick={handleAdicionarParte}
-                  className="text-primary hover:text-primary-dark flex items-center gap-1 text-sm"
-                >
-                  <Plus className="w-4 h-4" />
-                  Adicionar Parte
-                </button>
-              </div>
-            </div>
-
-            <Input
-              label="Tribunal *"
-              value={notificacaoEditando?.tribunal || ''}
-              onChange={(e) => setNotificacaoEditando(prev => ({
-                ...prev!,
-                tribunal: e.target.value
-              }))}
-            />
-
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Anexos</label>
-              <div className="card-juridico p-4 space-y-2">
-                <input
-                  type="file"
-                  onChange={handleFileUpload}
-                  className="hidden"
-                  id="file-upload"
-                  multiple
-                />
-                <label 
-                  htmlFor="file-upload"
-                  className="btn-primary flex items-center gap-2 cursor-pointer text-sm"
-                >
-                  <Upload className="w-4 h-4" />
-                  Adicionar Anexo
-                </label>
-                <div className="flex flex-wrap gap-2 mt-2">
-                  {notificacaoEditando?.anexos?.map((anexo, index) => (
-                    <div key={index} className="flex items-center gap-1 bg-gray-100 px-2 py-1 rounded">
-                      <FileText className="w-3 h-3" />
-                      <span className="text-xs">{anexo.nome}</span>
-                      <button 
-                        onClick={() => handleRemoverAnexo(index)}
-                        className="text-red-500 hover:text-red-700"
-                      >
-                        ×
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <DialogFooter>
-            <Button 
-              variant="outline" 
-              onClick={() => setIsModalOpen(false)}
-            >
-              Cancelar
-            </Button>
-            <Button
-              onClick={() => notificacaoEditando && handleSubmit(notificacaoEditando)}
-              disabled={!isFormularioValido}
-            >
-              {notificacaoEditando ? 'Salvar Alterações' : 'Criar Notificação'}
-            </Button>
-          </DialogFooter>
+          )}
         </DialogContent>
       </Dialog>
     </main>
