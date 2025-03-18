@@ -1,7 +1,8 @@
-import { Header } from './Header';
-import { ProcessTable } from './ProcessTable';
-import { FinanceChart } from './FinanceChart';
-import { ReportsSection } from './ReportsSection';
+// pages/DashboardPage.tsx
+import { ProcessTable } from '../components/ProcessTable';
+import { FinanceChart } from '../components/FinanceChart';
+import { ReportsSection } from '../components/ReportsSection';
+import { Header } from '../components/Header';
 
 export default function Dashboard() {
   return (

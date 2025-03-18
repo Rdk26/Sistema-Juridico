@@ -1,5 +1,5 @@
 // pages/ConfiguracoesPage.tsx
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   User,
   Lock,
@@ -14,27 +14,236 @@ import {
   FileText,
   Sun,
   Moon,
-  Monitor
+  Monitor,
+  Loader,
+  AlertCircle
 } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/Select';
 import { Switch } from '../components/ui/Switch';
 import { useTheme } from '../components/ThemeProvider';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '../components/ui/Dialog';
+import { Input } from '../components/ui/Input';
+import { toast } from 'react-hot-toast';
+import { saveAs } from 'file-saver';
+
+type UserData = {
+  name: string;
+  email: string;
+  lastPasswordChange: string;
+};
+
+type AppSettings = {
+  notifications: boolean;
+  language: string;
+  twoFactorAuth: boolean;
+};
 
 export default function ConfiguracoesPage() {
   const { theme, toggleTheme } = useTheme();
-  const [notificacoesAtivas, setNotificacoesAtivas] = useState(true);
-  const [twoFactorAuth, setTwoFactorAuth] = useState(false);
-  const [email, setEmail] = useState('advogado@mdlegal.mz');
-  const [idioma, setIdioma] = useState('pt');
+  const [isSaving, setIsSaving] = useState(false);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
+  
+  // Estados principais
+  const [userData, setUserData] = useState<UserData>({
+    name: "Uriel Menete",
+    email: "advogado@mdlegal.mz",
+    lastPasswordChange: "2024-03-01"
+  });
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    alert('Configurações salvas com sucesso!');
+  const [settings, setSettings] = useState<AppSettings>({
+    notifications: true,
+    language: 'pt',
+    twoFactorAuth: false
+  });
+
+  // Estados do formulário de senha
+  const [passwordData, setPasswordData] = useState({
+    current: '',
+    new: '',
+    confirm: ''
+  });
+
+  const [errors, setErrors] = useState({
+    email: '',
+    password: ''
+  });
+
+  // Carregar configurações salvas
+  useEffect(() => {
+    const savedSettings = localStorage.getItem('appSettings');
+    if (savedSettings) {
+      setSettings(JSON.parse(savedSettings));
+    }
+
+    const savedUserData = localStorage.getItem('userData');
+    if (savedUserData) {
+      setUserData(JSON.parse(savedUserData));
+    }
+  }, []);
+
+  // Validar formato de e-mail
+  const validateEmail = (email: string) => {
+    const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return regex.test(email);
+  };
+
+  // Validar senha
+  const validatePassword = () => {
+    if (passwordData.new !== passwordData.confirm) {
+      setErrors(prev => ({ ...prev, password: 'As senhas não coincidem' }));
+      return false;
+    }
+    if (passwordData.new.length < 8) {
+      setErrors(prev => ({ ...prev, password: 'Senha deve ter pelo menos 8 caracteres' }));
+      return false;
+    }
+    setErrors(prev => ({ ...prev, password: '' }));
+    return true;
+  };
+
+  // Salvar configurações
+  const handleSubmit = async (event: React.FormEvent) => {
+    event.preventDefault();
+    setIsSaving(true);
+
+    if (!validateEmail(userData.email)) {
+      setErrors(prev => ({ ...prev, email: 'E-mail inválido' }));
+      setIsSaving(false);
+      return;
+    }
+
+    try {
+      // Simular chamada à API
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      // Salvar no localStorage
+      localStorage.setItem('appSettings', JSON.stringify(settings));
+      localStorage.setItem('userData', JSON.stringify(userData));
+      
+      toast.success('Configurações salvas com sucesso!');
+    } catch (error) {
+      toast.error('Erro ao salvar configurações');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  // Alterar senha
+  const handlePasswordChange = async () => {
+    if (!validatePassword()) return;
+
+    try {
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      setUserData(prev => ({
+        ...prev,
+        lastPasswordChange: new Date().toISOString().split('T')[0]
+      }));
+
+      setPasswordData({ current: '', new: '', confirm: '' });
+      setIsPasswordModalOpen(false);
+      toast.success('Senha alterada com sucesso!');
+    } catch (error) {
+      toast.error('Erro ao alterar senha');
+    }
+  };
+
+  // Exportar dados
+  const handleExportData = (type: 'all' | 'documents') => {
+    const data = type === 'all' ? 
+      { userData, settings } : 
+      userData;
+
+    const blob = new Blob([JSON.stringify(data)], { type: 'application/json' });
+    saveAs(blob, `backup-${type}-${new Date().toISOString()}.json`);
+    toast.success('Exportação realizada com sucesso');
+  };
+
+  // Excluir conta
+  const handleDeleteAccount = async () => {
+    try {
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      localStorage.clear();
+      toast.success('Conta excluída com sucesso');
+      window.location.reload();
+    } catch (error) {
+      toast.error('Erro ao excluir conta');
+    }
   };
 
   return (
     <main className="flex-1 overflow-auto p-6">
+      {/* Modal de Exclusão de Conta */}
+      <Dialog open={isDeleteModalOpen} onOpenChange={setIsDeleteModalOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Confirmar Exclusão de Conta</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <p className="text-gray-600 dark:text-gray-300">
+              Tem certeza que deseja excluir permanentemente sua conta? 
+              Todos os dados serão perdidos e esta ação não pode ser desfeita.
+            </p>
+            <div className="flex items-center gap-2 text-red-600">
+              <AlertCircle className="w-4 h-4" />
+              <span className="text-sm">Esta operação é irreversível</span>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsDeleteModalOpen(false)}>
+              Cancelar
+            </Button>
+            <Button 
+              variant="destructive" 
+              onClick={handleDeleteAccount}
+            >
+              Confirmar Exclusão
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal de Alteração de Senha */}
+      <Dialog open={isPasswordModalOpen} onOpenChange={setIsPasswordModalOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Alterar Senha</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <Input
+              type="password"
+              label="Senha Atual"
+              value={passwordData.current}
+              onChange={(event) => setPasswordData(prev => ({ ...prev, current: event.target.value }))}
+            />
+            <Input
+              type="password"
+              label="Nova Senha"
+              value={passwordData.new}
+              onChange={(event) => setPasswordData(prev => ({ ...prev, new: event.target.value }))}
+            />
+            <Input
+              type="password"
+              label="Confirmar Nova Senha"
+              value={passwordData.confirm}
+              onChange={(event) => setPasswordData(prev => ({ ...prev, confirm: event.target.value }))}
+            />
+          </div>
+          <DialogFooter>
+            <Button onClick={handlePasswordChange}>
+              {isSaving ? (
+                <Loader className="w-4 h-4 mr-2 animate-spin" />
+              ) : (
+                'Confirmar Alteração'
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Conteúdo Principal */}
       <div className="mb-6 flex justify-between items-center">
         <h1 className="text-3xl font-bold texto-escuro flex items-center gap-2">
           <Settings className="w-6 h-6" />
@@ -56,17 +265,21 @@ export default function ConfiguracoesPage() {
               <input
                 type="text"
                 className="card-juridico w-full p-3"
-                defaultValue="Uriel Menete"
+                value={userData.name}
+                onChange={(event) => setUserData(prev => ({ ...prev, name: event.target.value }))}
               />
             </div>
             
             <div>
-              <label className="block texto-escuro mb-2">E-mail</label>
-              <input
+              <Input
                 type="email"
-                className="card-juridico w-full p-3"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                label="E-mail"
+                value={userData.email}
+                onChange={(event) => {
+                  setUserData(prev => ({ ...prev, email: event.target.value }));
+                  setErrors(prev => ({ ...prev, email: '' }));
+                }}
+                error={errors.email}
               />
             </div>
           </div>
@@ -88,8 +301,8 @@ export default function ConfiguracoesPage() {
                 </p>
               </div>
               <Switch 
-                checked={twoFactorAuth}
-                onCheckedChange={setTwoFactorAuth}
+                checked={settings.twoFactorAuth}
+                onCheckedChange={(checked) => setSettings(prev => ({ ...prev, twoFactorAuth: checked }))}
               />
             </div>
 
@@ -97,10 +310,13 @@ export default function ConfiguracoesPage() {
               <div>
                 <h3 className="font-medium">Alterar Senha</h3>
                 <p className="texto-escuro text-sm opacity-75">
-                  Última alteração: 15 dias atrás
+                  Última alteração: {new Date(userData.lastPasswordChange).toLocaleDateString('pt-MZ')}
                 </p>
               </div>
-              <Button variant="outline">
+              <Button 
+                variant="outline"
+                onClick={() => setIsPasswordModalOpen(true)}
+              >
                 <Lock className="w-4 h-4 mr-2" />
                 Redefinir
               </Button>
@@ -117,8 +333,11 @@ export default function ConfiguracoesPage() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
-              <label className="block texto-escuro mb-2">Frequência de Alertas</label>
-              <Select value={idioma} onValueChange={setIdioma}>
+              <label className="block texto-escuro mb-2">Idioma do Sistema</label>
+              <Select 
+                value={settings.language} 
+                onValueChange={(value) => setSettings(prev => ({ ...prev, language: value }))}
+              >
                 <SelectTrigger className="w-full">
                   <SelectValue placeholder="Selecione o idioma" />
                 </SelectTrigger>
@@ -137,8 +356,8 @@ export default function ConfiguracoesPage() {
                 </p>
               </div>
               <Switch
-                checked={notificacoesAtivas}
-                onCheckedChange={setNotificacoesAtivas}
+                checked={settings.notifications}
+                onCheckedChange={(checked) => setSettings(prev => ({ ...prev, notifications: checked }))}
               />
             </div>
           </div>
@@ -189,11 +408,17 @@ export default function ConfiguracoesPage() {
             <div>
               <h3 className="font-medium mb-2">Exportar Dados</h3>
               <div className="flex gap-4">
-                <Button variant="outline">
+                <Button 
+                  variant="outline"
+                  onClick={() => handleExportData('all')}
+                >
                   <Download className="w-4 h-4 mr-2" />
                   Exportar Tudo
                 </Button>
-                <Button variant="outline">
+                <Button 
+                  variant="outline"
+                  onClick={() => handleExportData('documents')}
+                >
                   <FileText className="w-4 h-4 mr-2" />
                   Somente Documentos
                 </Button>
@@ -209,7 +434,10 @@ export default function ConfiguracoesPage() {
                 <p className="texto-escuro text-sm">
                   A exclusão da conta é permanente e não pode ser desfeita.
                 </p>
-                <Button variant="destructive">
+                <Button 
+                  variant="destructive"
+                  onClick={() => setIsDeleteModalOpen(true)}
+                >
                   Excluir Conta Permanentemente
                 </Button>
               </div>
@@ -221,9 +449,18 @@ export default function ConfiguracoesPage() {
           <Button type="button" variant="outline">
             Cancelar
           </Button>
-          <Button type="submit">
-            <Save className="w-4 h-4 mr-2" />
-            Salvar Alterações
+          <Button type="submit" disabled={isSaving}>
+            {isSaving ? (
+              <div className="flex items-center">
+                <Loader className="w-4 h-4 mr-2 animate-spin" />
+                Salvando...
+              </div>
+            ) : (
+              <>
+                <Save className="w-4 h-4 mr-2" />
+                Salvar Alterações
+              </>
+            )}
           </Button>
         </div>
       </form>

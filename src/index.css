@@ -4,35 +4,60 @@
 @tailwind utilities;
 
 /* Estilos personalizados */
-@layer components {
-  /* Cards */
-  .card-juridico {
-    @apply bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6;
-  }
+.card-juridico {
+  background-color: white;
+  border-radius: 0.75rem;
+  box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  border: 1px solid #e5e7eb;
+  padding: 1.5rem;
+}
 
-  /* Botões */
-  .btn-primary {
-    @apply bg-[#2A3F54] text-white px-4 py-2 rounded-lg hover:bg-[#34495E] transition-colors;
-  }
+.dark .card-juridico {
+  background-color: #1f2937;
+  border-color: #374151;
+}
 
-  /* Textos */
-  .texto-escuro {
-    @apply dark:text-gray-100 text-gray-800;
-  }
+.btn-primary {
+  background-color: #2A3F54;
+  color: white;
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  transition: background-color 0.2s;
+}
 
-  /* Tabelas */
-  .tabela-juridica th {
-    @apply bg-[#2A3F54] text-white text-left px-6 py-3 text-sm font-semibold;
-  }
+.btn-primary:hover {
+  background-color: #34495E;
+}
 
-  .tabela-juridica td {
-    @apply border-b border-gray-200 dark:border-gray-700 px-6 py-4;
-  }
+.texto-escuro {
+  color: #1f2937;
+}
 
-  /* Menu lateral */
-  .menu-item-ativo {
-    @apply bg-[#34495E] text-white !important;
-  }
+.dark .texto-escuro {
+  color: #f3f4f6;
+}
+
+.tabela-juridica th {
+  background-color: #2A3F54;
+  color: white;
+  text-align: left;
+  padding: 0.75rem 1.5rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.tabela-juridica td {
+  border-bottom: 1px solid #e5e7eb;
+  padding: 1rem 1.5rem;
+}
+
+.dark .tabela-juridica td {
+  border-color: #374151;
+}
+
+.menu-item-ativo {
+  background-color: #34495E !important;
+  color: white !important;
 }
 
 /* Dark mode global */
@@ -46,17 +71,40 @@
 }
 
 ::-webkit-scrollbar-track {
-  @apply bg-gray-100 dark:bg-gray-800;
+  background-color: #f3f4f6;
+}
+
+.dark ::-webkit-scrollbar-track {
+  background-color: #1f2937;
 }
 
 ::-webkit-scrollbar-thumb {
-  @apply bg-[#2A3F54] rounded-full;
+  background-color: #2A3F54;
+  border-radius: 9999px;
 }
+
 input:invalid, select:invalid {
   border-color: #f87171;
   box-shadow: 0 0 0 1px #f87171;
 }
+
 .border-red-500 {
   border-color: #ef4444;
   box-shadow: 0 0 0 1px #ef4444;
+}
+
+.active-menu-item {
+  position: relative;
+}
+
+.active-menu-item::after {
+  content: '';
+  position: absolute;
+  right: -8px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 4px;
+  height: 60%;
+  background: #3B82F6;
+  border-radius: 2px;
 }

@@ -1,18 +1,16 @@
-module.exports = {
-  darkMode: 'class',
+/** @type {import('tailwindcss').Config} */
+export default {
   content: [
     "./index.html",
     "./src/**/*.{js,ts,jsx,tsx}",
   ],
+  darkMode: 'class',
   theme: {
     extend: {
       colors: {
         primary: '#2A3F54',
         secondary: '#3B82F6',
-        destructive: {
-          DEFAULT: '#dc2626', // Vermelho padrão
-          foreground: '#ffffff', // Texto branco
-        },
+        destructive: '#ef4444',
       }
     },
   },

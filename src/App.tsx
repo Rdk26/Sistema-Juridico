@@ -13,10 +13,12 @@ import SuportePage from './pages/SuportePage';
 import NotificacoesPage from './pages/NotificacoesPage';
 import ClientesPage from './pages/ClientesPage';
 import PessoalInternoPage from './pages/PessoalInternoPage';
+import { Toaster } from 'react-hot-toast';
 
 function App() {
   return (
     <ThemeProvider>
+      <Toaster position="bottom-right" />
       <div className="flex h-screen bg-gray-50 dark:bg-gray-900">
         <Sidebar />
         <Routes>

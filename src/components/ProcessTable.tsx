@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
-import { Plus } from 'lucide-react';
+import { Eye} from 'lucide-react';
 import { Skeleton } from './Skeleton';
+import { Link } from 'react-router-dom';
 
 type Processo = {
   client: string;
@@ -60,25 +61,28 @@ export function ProcessTable() {
     }, 1500);
   }, []);
 
+
   return (
     <div className="card-juridico">
       <div className="p-6 border-b border-gray-200 dark:border-gray-700">
         <div className="flex items-center justify-between">
           <h2 className="texto-escuro text-xl font-semibold">Processos Jurídicos</h2>
           <div className="flex gap-3">
-            <button className="btn-primary flex items-center gap-2">
-              <Plus className="w-4 h-4" />
-              Novo Processo
-            </button>
+            <Link 
+              to="/processos" 
+              className="btn-primary flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg transition-colors"
+            >
+              <Eye className="w-4 h-4" />
+              Ver Mais
+            </Link>
           </div>
         </div>
       </div>
-      
       {isLoading ? (
         <div className="p-6 space-y-4">
-          <Skeleton className="h-12 w-full" />
-          <Skeleton className="h-12 w-full" />
-          <Skeleton className="h-12 w-full" />
+          {[...Array(3)].map((_, index) => (
+            <Skeleton key={index} className="h-12 w-full" />
+          ))}
         </div>
       ) : (
         <table className="tabela-juridica w-full">
@@ -86,19 +90,19 @@ export function ProcessTable() {
             <tr>
               <th>Cliente</th>
               <th>N° Processo</th>
-              <th>Secção</th> {/* Nome alterado */}
+              <th>Secção</th>
               <th>Última Movimentação</th>
               <th>Status</th>
             </tr>
           </thead>
           <tbody>
             {processos.map((processo) => (
-              <tr key={processo.number} className="texto-escuro">
-                <td>{processo.client}</td>
-                <td className="font-mono">{processo.number}</td>
-                <td>{processo.section}</td> {/* Campo alterado */}
-                <td>{processo.lastUpdate}</td>
-                <td>
+              <tr key={processo.number} className="hover:bg-gray-50 dark:hover:bg-gray-800">
+                <td className="p-4">{processo.client}</td>
+                <td className="p-4 font-mono">{processo.number}</td>
+                <td className="p-4">{processo.section}</td>
+                <td className="p-4">{new Date(processo.lastUpdate).toLocaleDateString('pt-MZ')}</td>
+                <td className="p-4">
                   <span className={`px-2.5 py-0.5 rounded-full text-xs ${getStatusColor(processo.status)}`}>
                     {processo.status}
                   </span>
