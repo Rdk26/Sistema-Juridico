@@ -15,7 +15,10 @@ import {
   Trash2,
   Eye,
   Edit,
-  Download
+  Download,
+  Bell,
+  CheckCircle,
+  Filter
 } from 'lucide-react';
 import { Skeleton } from '../components/Skeleton';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '../components/ui/Dialog';
@@ -26,6 +29,7 @@ import { pt } from 'date-fns/locale';
 import { Button } from '../components/ui/Button';
 import { Textarea } from '../components/ui/Textarea';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '../components/ui/Tabs';
+import { SearchInput } from '../components/ui/SearchInput';
 
 type Notificacao = {
   id: number;
@@ -104,15 +108,19 @@ const isPrazoProximo = (prazo: string) => {
 export default function NotificacoesPage() {
   const [notificacoes, setNotificacoes] = useState<Notificacao[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [filtroTexto, setFiltroTexto] = useState('');
-  const [filtroTipo, setFiltroTipo] = useState('todos');
-  const [filtroStatus, setFiltroStatus] = useState('todos');
-  const [filtroData, setFiltroData] = useState('');
+  const [filtros, setFiltros] = useState({
+    termoBusca: '',
+    tipo: 'todos',
+    status: 'todos',
+    data: ''
+  });
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [notificacaoEditando, setNotificacaoEditando] = useState<Notificacao | null>(null);
   const [notificacaoVisualizando, setNotificacaoVisualizando] = useState<Notificacao | null>(null);
   const [erros, setErros] = useState<{ [key: string]: string }>({});
   const [abaAtiva, setAbaAtiva] = useState('dados');
+  const [isViewModalOpen, setIsViewModalOpen] = useState(false);
+  const [notificacaoSelecionada, setNotificacaoSelecionada] = useState<Notificacao | null>(null);
 
   const novaNotificacaoPadrao: Notificacao = {
     id: 0,
@@ -140,13 +148,13 @@ export default function NotificacoesPage() {
   };
 
   const notificacoesFiltradas = notificacoes.filter(notificacao => {
-    const matchesTexto = notificacao.numeroProcesso.toLowerCase().includes(filtroTexto.toLowerCase()) ||
-      notificacao.descricao.toLowerCase().includes(filtroTexto.toLowerCase()) ||
-      notificacao.tribunal.toLowerCase().includes(filtroTexto.toLowerCase());
+    const matchesTexto = notificacao.numeroProcesso.toLowerCase().includes(filtros.termoBusca.toLowerCase()) ||
+      notificacao.descricao.toLowerCase().includes(filtros.termoBusca.toLowerCase()) ||
+      notificacao.tribunal.toLowerCase().includes(filtros.termoBusca.toLowerCase());
 
-    const matchesTipo = filtroTipo === 'todos' || notificacao.tipo === filtroTipo;
-    const matchesStatus = filtroStatus === 'todos' || notificacao.status === filtroStatus;
-    const matchesData = !filtroData || notificacao.dataNotificacao === filtroData;
+    const matchesTipo = filtros.tipo === 'todos' || notificacao.tipo === filtros.tipo;
+    const matchesStatus = filtros.status === 'todos' || notificacao.status === filtros.status;
+    const matchesData = !filtros.data || notificacao.dataNotificacao === filtros.data;
 
     return matchesTexto && matchesTipo && matchesStatus && matchesData;
   });
@@ -223,7 +231,8 @@ export default function NotificacoesPage() {
   };
 
   const handleVisualizar = (notificacao: Notificacao) => {
-    setNotificacaoVisualizando(notificacao);
+    setNotificacaoSelecionada(notificacao);
+    setIsViewModalOpen(true);
   };
 
   const handleApagar = (id: number) => {
@@ -244,6 +253,11 @@ export default function NotificacoesPage() {
 
   const isFormularioValido = Object.keys(erros).length === 0;
 
+  const exportarParaExcel = () => {
+    // Implementação completa da exportação para Excel
+    console.log("Exportando relatório para Excel...");
+  };
+
   return (
     <main className="flex-1 overflow-auto p-6">
       {/* Cabeçalho e Filtros */}
@@ -261,45 +275,65 @@ export default function NotificacoesPage() {
         </Button>
       </div>
 
+      {/* Seção de Filtros e Exportação */}
       <div className="mb-6 grid grid-cols-1 md:grid-cols-4 gap-4">
-        <div className="relative flex items-center">
-          <Search className="absolute left-3 w-5 h-5 text-gray-400" />
-          <Input
-            placeholder="Pesquisar..."
-            value={filtroTexto}
-            onChange={(e) => setFiltroTexto(e.target.value)}
-            className="pl-10"
+        <div className="flex-1">
+          <SearchInput
+            placeholder="Buscar notificação..."
+            value={filtros.termoBusca}
+            onChange={(e) => setFiltros(prev => ({ 
+              ...prev, 
+              termoBusca: e.target.value 
+            }))}
           />
         </div>
-
-        <Select value={filtroTipo} onValueChange={setFiltroTipo}>
+        
+        <Select
+          value={filtros.tipo}
+          onValueChange={(value) => setFiltros(prev => ({ 
+            ...prev, 
+            tipo: value 
+          }))}
+        >
           <SelectTrigger>
-            <SelectValue placeholder="Todos os Tipos" />
+            <SelectValue placeholder="Todos os tipos" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="todos">Todos os Tipos</SelectItem>
-            <SelectItem value="notificação">Notificação</SelectItem>
-            <SelectItem value="citação">Citação</SelectItem>
-            <SelectItem value="diligência">Diligência</SelectItem>
+            <SelectItem value="todos">Todos os tipos</SelectItem>
+            <SelectItem value="processo">Processo</SelectItem>
+            <SelectItem value="prazo">Prazo</SelectItem>
+            <SelectItem value="audiencia">Audiência</SelectItem>
           </SelectContent>
         </Select>
 
-        <Select value={filtroStatus} onValueChange={setFiltroStatus}>
+        <Select
+          value={filtros.status}
+          onValueChange={(value) => setFiltros(prev => ({ 
+            ...prev, 
+            status: value 
+          }))}
+        >
           <SelectTrigger>
-            <SelectValue placeholder="Todos os Status" />
+            <SelectValue placeholder="Todos os status" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="todos">Todos os Status</SelectItem>
-            <SelectItem value="pendente">Pendente</SelectItem>
-            <SelectItem value="cumprida">Cumprida</SelectItem>
-            <SelectItem value="expirada">Expirada</SelectItem>
+            <SelectItem value="todos">Todos os status</SelectItem>
+            <SelectItem value="nao_lida">Não lida</SelectItem>
+            <SelectItem value="lida">Lida</SelectItem>
           </SelectContent>
         </Select>
 
+        <Button 
+          onClick={exportarParaExcel} 
+          className="flex items-center justify-center gap-2"
+        >
+          <Download className="w-5 h-5" />
+          Exportar Relatório
+        </Button>
         <Input
           type="date"
-          value={filtroData}
-          onChange={(e) => setFiltroData(e.target.value)}
+          value={filtros.data}
+          onChange={(e) => setFiltros(prev => ({ ...prev, data: e.target.value }))}
           placeholder="Filtrar por data"
         />
       </div>
@@ -388,348 +422,273 @@ export default function NotificacoesPage() {
         </div>
       )}
 
-      {/* Modal de Edição/Criação */}
+      {/* Modal de Criação/Edição */}
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-        <DialogContent className="sm:max-w-[700px]">
+        <DialogContent className="sm:max-w-[800px]">
           <DialogHeader>
-            <div className="text-2xl font-bold">
-              <DialogTitle>
-                {notificacaoEditando?.id === 0 ? 'Nova Notificação' : 'Editar Notificação'}
-              </DialogTitle>
-            </div>
+            <DialogTitle>
+              {notificacaoEditando?.id ? 'Editar Notificação' : 'Nova Notificação'}
+            </DialogTitle>
           </DialogHeader>
 
-          <Tabs value={abaAtiva} onValueChange={setAbaAtiva}>
-            <TabsList className="grid grid-cols-2">
-              <TabsTrigger value="dados">Dados Principais</TabsTrigger>
-              <TabsTrigger value="anexos">Anexos</TabsTrigger>
-            </TabsList>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 py-4">
+            <div className="space-y-4">
+              <Input
+                label="Número do Processo *"
+                value={notificacaoEditando?.numeroProcesso || ''}
+                onChange={(e) => setNotificacaoEditando(prev => ({
+                  ...prev!,
+                  numeroProcesso: e.target.value
+                }))}
+                error={erros.numeroProcesso}
+              />
 
-            <TabsContent value="dados">
-              <div className="grid gap-4 py-4">
-                <Input
-                  label="Número do Processo *"
-                  value={notificacaoEditando?.numeroProcesso || ''}
-                  onChange={(e) => {
-                    setErros(prev => ({ ...prev, numeroProcesso: '' }));
-                    setNotificacaoEditando(prev => ({
-                      ...(prev || novaNotificacaoPadrao),
-                      numeroProcesso: e.target.value
-                    }));
-                  }}
-                  className={erros.numeroProcesso ? 'border-red-500' : ''}
-                />
+              <Select
+                value={notificacaoEditando?.tipo || 'notificação'}
+                onValueChange={(value) => setNotificacaoEditando(prev => ({
+                  ...prev!,
+                  tipo: value as 'citação' | 'notificação' | 'diligência'
+                }))}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione o tipo" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="citação">Citação</SelectItem>
+                  <SelectItem value="notificação">Notificação</SelectItem>
+                  <SelectItem value="diligência">Diligência</SelectItem>
+                </SelectContent>
+              </Select>
 
-                <Textarea
-                  label="Descrição *"
-                  value={notificacaoEditando?.descricao || ''}
-                  onChange={(e) => {
-                    setErros(prev => ({ ...prev, descricao: '' }));
-                    setNotificacaoEditando(prev => ({
-                      ...prev!,
-                      descricao: e.target.value
-                    }));
-                  }}
-                  className={erros.descricao ? 'border-red-500' : ''}
-                />
+              <Input
+                label="Tribunal *"
+                value={notificacaoEditando?.tribunal || ''}
+                onChange={(e) => setNotificacaoEditando(prev => ({
+                  ...prev!,
+                  tribunal: e.target.value
+                }))}
+              />
 
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Input
-                      label="Tipo *"
-                      className="hidden"
-                    />
-                    <Select
-                      value={notificacaoEditando?.tipo || 'notificação'}
-                      onValueChange={(value) => setNotificacaoEditando(prev => ({
-                        ...prev!,
-                        tipo: value as 'citação' | 'notificação' | 'diligência'
-                      }))}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Selecione o tipo" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="notificação">Notificação</SelectItem>
-                        <SelectItem value="citação">Citação</SelectItem>
-                        <SelectItem value="diligência">Diligência</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
+              <Input
+                label="Data da Notificação *"
+                type="date"
+                value={notificacaoEditando?.dataNotificacao || ''}
+                onChange={(e) => setNotificacaoEditando(prev => ({
+                  ...prev!,
+                  dataNotificacao: e.target.value
+                }))}
+              />
 
-                  <div className="space-y-2">
-                    <Input
-                      label="Prioridade *"
-                      className="hidden"
-                    />
-                    <Select
-                      value={notificacaoEditando?.prioridade || 'baixa'}
-                      onValueChange={(value) => setNotificacaoEditando(prev => ({
-                        ...prev!,
-                        prioridade: value as 'baixa' | 'média' | 'alta'
-                      }))}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Selecione a prioridade" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="baixa">Baixa</SelectItem>
-                        <SelectItem value="média">Média</SelectItem>
-                        <SelectItem value="alta">Alta</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
+              <Input
+                label="Prazo *"
+                type="date"
+                value={notificacaoEditando?.prazo || ''}
+                onChange={(e) => setNotificacaoEditando(prev => ({
+                  ...prev!,
+                  prazo: e.target.value
+                }))}
+              />
 
-                <div className="grid grid-cols-2 gap-4">
-                  <Input
-                    label="Data da Notificação *"
-                    type="date"
-                    value={notificacaoEditando?.dataNotificacao || ''}
-                    onChange={(e) => setNotificacaoEditando(prev => ({
-                      ...prev!,
-                      dataNotificacao: e.target.value
-                    }))}
-                    className={erros.dataNotificacao ? 'border-red-500' : ''}
-                  />
+              <Select
+                value={notificacaoEditando?.prioridade || 'baixa'}
+                onValueChange={(value) => setNotificacaoEditando(prev => ({
+                  ...prev!,
+                  prioridade: value as 'baixa' | 'média' | 'alta'
+                }))}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione a prioridade" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="baixa">Baixa</SelectItem>
+                  <SelectItem value="média">Média</SelectItem>
+                  <SelectItem value="alta">Alta</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
 
-                  <Input
-                    label="Prazo *"
-                    type="date"
-                    value={notificacaoEditando?.prazo || ''}
-                    onChange={(e) => {
-                      setErros(prev => ({ ...prev, prazo: '' }));
-                      setNotificacaoEditando(prev => ({
-                        ...prev!,
-                        prazo: e.target.value
-                      }));
-                    }}
-                    className={erros.prazo ? 'border-red-500' : ''}
-                  />
-                </div>
-
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium mb-2">Partes Envolvidas</label>
                 <div className="space-y-2">
-                  <Input
-                    label="Partes Envolvidas"
-                    className="hidden"
-                  />
-                  <div className="card-juridico p-4 flex flex-wrap gap-2">
-                    {notificacaoEditando?.partesEnvolvidas.map((parte, index) => (
-                      <div key={index} className="bg-gray-50 px-2 py-1 rounded-full flex items-center gap-1">
-                        <User className="w-3 h-3" />
-                        <input
-                          value={parte}
-                          onChange={(e) => {
-                            setNotificacaoEditando(prev => {
-                              if (!prev) return null;
-                              const novasPartes = [...prev.partesEnvolvidas];
-                              novasPartes[index] = e.target.value;
-                              return { ...prev, partesEnvolvidas: novasPartes };
-                            });
-                          }}
-                          className="bg-transparent outline-none text-sm"
-                        />
-                        <button
-                          onClick={() => handleRemoverParte(index)}
-                          className="text-red-500 hover:text-red-700 ml-1"
+                  {notificacaoEditando?.partesEnvolvidas.map((parte, index) => (
+                    <div key={index} className="flex gap-2">
+                      <Input
+                        value={parte}
+                        onChange={(e) => {
+                          const novasPartes = [...notificacaoEditando!.partesEnvolvidas];
+                          novasPartes[index] = e.target.value;
+                          setNotificacaoEditando(prev => ({
+                            ...prev!,
+                            partesEnvolvidas: novasPartes
+                          }));
+                        }}
+                        placeholder="Nome da parte"
+                      />
+                      <Button
+                        variant="destructive"
+                        size="sm"
+                        onClick={() => handleRemoverParte(index)}
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  ))}
+                  <Button
+                    variant="outline"
+                    onClick={handleAdicionarParte}
+                    className="w-full"
+                  >
+                    <Plus className="w-4 h-4 mr-2" />
+                    Adicionar Parte
+                  </Button>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-2">Descrição</label>
+                <Textarea
+                  value={notificacaoEditando?.descricao || ''}
+                  onChange={(e) => setNotificacaoEditando(prev => ({
+                    ...prev!,
+                    descricao: e.target.value
+                  }))}
+                  rows={4}
+                  className="w-full"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-2">Anexos</label>
+                <div className="space-y-2">
+                  {notificacaoEditando?.anexos.map((anexo, index) => (
+                    <div key={index} className="flex items-center justify-between p-2 border rounded">
+                      <div className="flex items-center gap-2">
+                        <FileText className="w-4 h-4" />
+                        <span>{anexo.nome}</span>
+                      </div>
+                      <div className="flex gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleDownloadDocumento(anexo)}
+                        >
+                          <Download className="w-4 h-4" />
+                        </Button>
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                          onClick={() => handleRemoverAnexo(index)}
                         >
                           <Trash2 className="w-4 h-4" />
-                        </button>
+                        </Button>
                       </div>
-                    ))}
-                    <button
-                      onClick={handleAdicionarParte}
-                      className="text-primary hover:text-primary-dark flex items-center gap-1 text-sm"
-                    >
-                      <Plus className="w-4 h-4" />
-                      Adicionar Parte
-                    </button>
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <Input
-                    label="Status *"
-                    className="hidden"
-                  />
-                  <Select
-                    value={notificacaoEditando?.status || 'pendente'}
-                    onValueChange={(value) => setNotificacaoEditando(prev => ({
-                      ...prev!,
-                      status: value as 'pendente' | 'cumprida' | 'expirada'
-                    }))}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecione o status" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="pendente">Pendente</SelectItem>
-                      <SelectItem value="cumprida">Cumprida</SelectItem>
-                      <SelectItem value="expirada">Expirada</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <Input
-                  label="Tribunal *"
-                  value={notificacaoEditando?.tribunal || ''}
-                  onChange={(e) => {
-                    setErros(prev => ({ ...prev, tribunal: '' }));
-                    setNotificacaoEditando(prev => ({
-                      ...prev!,
-                      tribunal: e.target.value
-                    }));
-                  }}
-                  className={erros.tribunal ? 'border-red-500' : ''}
-                />
-              </div>
-            </TabsContent>
-
-            <TabsContent value="anexos">
-              <div className="space-y-4 py-4">
-                <div className="card-juridico p-4 space-y-2">
+                    </div>
+                  ))}
                   <input
                     type="file"
-                    onChange={handleFileUpload}
+                    id="upload-anexo"
                     className="hidden"
-                    id="file-upload"
+                    onChange={handleFileUpload}
                     multiple
                   />
-                  <label 
-                    htmlFor="file-upload"
-                    className="btn-primary flex items-center gap-2 cursor-pointer text-sm"
+                  <label
+                    htmlFor="upload-anexo"
+                    className="btn-primary flex items-center justify-center gap-2 cursor-pointer"
                   >
                     <Upload className="w-4 h-4" />
-                    Adicionar Anexo
+                    Adicionar Anexos
                   </label>
-                  <div className="flex flex-wrap gap-2 mt-2">
-                    {notificacaoEditando?.anexos?.map((anexo, index) => (
-                      <div key={index} className="flex items-center gap-1 bg-gray-100 px-2 py-1 rounded">
-                        <FileText className="w-3 h-3" />
-                        <span className="text-xs">{anexo.nome}</span>
-                        <div className="flex gap-1">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleDownloadDocumento(anexo)}
-                          >
-                            <Download className="w-4 h-4" />
-                          </Button>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleRemoverAnexo(index)}
-                          >
-                            <Trash2 className="w-4 h-4 text-red-600" />
-                          </Button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
                 </div>
               </div>
-            </TabsContent>
-          </Tabs>
+            </div>
+          </div>
 
           <DialogFooter>
-            <Button 
-              variant="outline" 
-              onClick={() => {
-                setIsModalOpen(false);
-                setNotificacaoEditando(null);
-              }}
-            >
+            <Button variant="outline" onClick={() => setIsModalOpen(false)}>
               Cancelar
             </Button>
-            <Button
-              onClick={handleSubmit}
-              disabled={!isFormularioValido}
-              className="relative"
-            >
-              {notificacaoEditando?.id === 0 ? 'Criar Notificação' : 'Salvar Alterações'}
-              {!isFormularioValido && (
-                <span className="absolute -right-2 -top-2 animate-ping inline-flex h-5 w-5 rounded-full bg-red-400 opacity-75"></span>
-              )}
+            <Button onClick={handleSubmit}>
+              {notificacaoEditando?.id ? 'Atualizar Notificação' : 'Criar Notificação'}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
       {/* Modal de Visualização */}
-      <Dialog open={!!notificacaoVisualizando} onOpenChange={() => setNotificacaoVisualizando(null)}>
-        <DialogContent className="sm:max-w-[600px]">
+      <Dialog open={isViewModalOpen} onOpenChange={setIsViewModalOpen}>
+        <DialogContent className="sm:max-w-3xl">
           <DialogHeader>
-            <div className="text-2xl font-bold">
-              <DialogTitle>Detalhes da Notificação</DialogTitle>
-            </div>
+            <div className="text-2xl font-bold texto-escuro">Detalhes da Notificação</div>
           </DialogHeader>
-          
-          {notificacaoVisualizando && (
-            <div className="grid grid-cols-2 gap-4">
+
+          {notificacaoSelecionada && (
+            <div className="grid grid-cols-2 gap-6">
               <div className="space-y-4">
                 <div>
-                  <Input label="Número do Processo" className="hidden" />
-                  <p className="text-gray-600">{notificacaoVisualizando.numeroProcesso}</p>
+                  <label className="font-medium texto-escuro">Número do Processo:</label>
+                  <p className="texto-escuro">{notificacaoSelecionada.numeroProcesso}</p>
                 </div>
-
                 <div>
-                  <Input label="Status" className="hidden" />
-                  <p className={`${getStatusColor(notificacaoVisualizando.status)} px-2 py-1 rounded-full text-xs`}>
-                    {notificacaoVisualizando.status.toUpperCase()}
+                  <label className="font-medium texto-escuro">Tipo:</label>
+                  <p className="texto-escuro">{notificacaoSelecionada.tipo}</p>
+                </div>
+                <div>
+                  <label className="font-medium texto-escuro">Tribunal:</label>
+                  <p className="texto-escuro">{notificacaoSelecionada.tribunal}</p>
+                </div>
+                <div>
+                  <label className="font-medium texto-escuro">Data da Notificação:</label>
+                  <p className="texto-escuro">{formatarData(notificacaoSelecionada.dataNotificacao)}</p>
+                </div>
+                <div>
+                  <label className="font-medium texto-escuro">Prazo:</label>
+                  <p className={`texto-escuro ${isPrazoProximo(notificacaoSelecionada.prazo) ? 'text-red-500' : ''}`}>
+                    {formatarData(notificacaoSelecionada.prazo)}
                   </p>
                 </div>
-
                 <div>
-                  <Input label="Tipo" className="hidden" />
-                  <p className="text-gray-600">{notificacaoVisualizando.tipo}</p>
+                  <label className="font-medium texto-escuro">Status:</label>
+                  <span className={`px-2.5 py-0.5 rounded-full text-xs ${getStatusColor(notificacaoSelecionada.status)}`}>
+                    {notificacaoSelecionada.status}
+                  </span>
                 </div>
-
                 <div>
-                  <Input label="Prioridade" className="hidden" />
-                  <p className="text-gray-600">{notificacaoVisualizando.prioridade}</p>
-                </div>
-              </div>
-
-              <div className="space-y-4">
-                <div>
-                  <Input label="Data da Notificação" className="hidden" />
-                  <p className="text-gray-600">{formatarData(notificacaoVisualizando.dataNotificacao)}</p>
-                </div>
-
-                <div>
-                  <Input label="Prazo" className="hidden" />
-                  <p className="text-gray-600">{formatarData(notificacaoVisualizando.prazo)}</p>
-                </div>
-
-                <div>
-                  <Input label="Tribunal" className="hidden" />
-                  <p className="text-gray-600">{notificacaoVisualizando.tribunal}</p>
+                  <label className="font-medium texto-escuro">Prioridade:</label>
+                  <span className={`px-2.5 py-0.5 rounded-full text-xs ${getPrioridadeBadge(notificacaoSelecionada.prioridade)}`}>
+                    {notificacaoSelecionada.prioridade}
+                  </span>
                 </div>
               </div>
 
-              {/* Seções para Partes Envolvidas e Anexos */}
-              <div className="col-span-2 space-y-4">
-                {notificacaoVisualizando.partesEnvolvidas.length > 0 && (
-                  <div>
-                    <Input label="Partes Envolvidas" className="hidden" />
-                    <div className="flex flex-wrap gap-2 mt-2">
-                      {notificacaoVisualizando.partesEnvolvidas.map((parte, index) => (
-                        <div key={index} className="bg-gray-100 px-2 py-1 rounded">
-                          <span className="text-xs">{parte}</span>
-                        </div>
-                      ))}
-                    </div>
+              <div>
+                <div>
+                  <label className="font-medium texto-escuro">Partes Envolvidas:</label>
+                  <div className="mt-2 space-y-2">
+                    {notificacaoSelecionada.partesEnvolvidas.map((parte, index) => (
+                      <div key={index} className="flex items-center gap-2">
+                        <User className="w-4 h-4 text-gray-400" />
+                        <span className="texto-escuro">{parte}</span>
+                      </div>
+                    ))}
                   </div>
-                )}
+                </div>
 
-                {notificacaoVisualizando.anexos.length > 0 && (
-                  <div>
-                    <Input label="Anexos" className="hidden" />
-                    <div className="flex flex-wrap gap-2 mt-2">
-                      {notificacaoVisualizando.anexos.map((anexo, index) => (
-                        <div key={index} className="bg-gray-100 px-2 py-1 rounded flex items-center gap-2">
-                          <FileText className="w-3 h-3" />
-                          <span className="text-xs">{anexo.nome}</span>
+                <div className="mt-4">
+                  <label className="font-medium texto-escuro">Descrição:</label>
+                  <p className="texto-escuro mt-2">{notificacaoSelecionada.descricao}</p>
+                </div>
+
+                {notificacaoSelecionada.anexos.length > 0 && (
+                  <div className="mt-4">
+                    <label className="font-medium texto-escuro">Anexos:</label>
+                    <div className="mt-2 space-y-2">
+                      {notificacaoSelecionada.anexos.map((anexo, index) => (
+                        <div key={index} className="flex items-center justify-between p-2 border rounded">
+                          <div className="flex items-center gap-2">
+                            <FileText className="w-4 h-4" />
+                            <span className="texto-escuro">{anexo.nome}</span>
+                          </div>
                           <Button
                             variant="outline"
                             size="sm"

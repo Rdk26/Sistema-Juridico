@@ -1,6 +1,8 @@
 // components/ui/Dialog.tsx
 import * as RadixDialog from '@radix-ui/react-dialog';
 import { X } from 'lucide-react'; // Adicione esta importação
+import React from 'react';
+import { cn } from '../../lib/utils';
 
 interface DialogProps {
     open: boolean;
@@ -48,3 +50,15 @@ export const DialogTitle = ({ children }: { children: React.ReactNode }) => (
 export const DialogFooter = ({ children }: { children: React.ReactNode }) => (
   <div className="mt-6 flex justify-end gap-3">{children}</div>
 );
+
+export const DialogDescription = React.forwardRef<
+  HTMLParagraphElement,
+  React.HTMLAttributes<HTMLParagraphElement>
+>(({ className, ...props }, ref) => (
+  <p
+    ref={ref}
+    className={cn("text-sm text-gray-500", className)}
+    {...props}
+  />
+));
+DialogDescription.displayName = "DialogDescription";

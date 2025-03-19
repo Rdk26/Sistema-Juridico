@@ -8,12 +8,18 @@ import {
   AlertTriangle,
   Clock,
   Users,
+  Edit,
+  Trash2,
+  AlertCircle,
+  Filter,
+  Download
 } from 'lucide-react';
 import { Skeleton } from '../components/Skeleton';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '../components/ui/Dialog';
 import { Input } from '../components/ui/Input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/Select';
 import { Button } from '../components/ui/Button';
+import { SearchInput } from '../components/ui/SearchInput';
 
 type Atividade = {
   id: number;
@@ -72,7 +78,7 @@ export default function AtividadesPage() {
   const [atividades, setAtividades] = useState<Atividade[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [filtros, setFiltros] = useState({
-    texto: '',
+    termoBusca: '',
     tipo: 'todos',
     status: 'todos',
     prioridade: 'todos'
@@ -88,8 +94,8 @@ export default function AtividadesPage() {
   }, []);
 
   const atividadesFiltradas = atividades.filter(atividade => {
-    const matchesTexto = atividade.titulo.toLowerCase().includes(filtros.texto.toLowerCase()) ||
-      atividade.descricao.toLowerCase().includes(filtros.texto.toLowerCase());
+    const matchesTexto = atividade.titulo.toLowerCase().includes(filtros.termoBusca.toLowerCase()) ||
+      atividade.descricao.toLowerCase().includes(filtros.termoBusca.toLowerCase());
 
     const matchesTipo = filtros.tipo === 'todos' || atividade.tipo === filtros.tipo;
     const matchesStatus = filtros.status === 'todos' || atividade.status === filtros.status;
@@ -140,6 +146,10 @@ export default function AtividadesPage() {
     setAtividades(prev => prev.filter(a => a.id !== id));
   };
 
+  const exportarParaExcel = () => {
+    // Implemente a lógica para exportar para Excel
+  };
+
   return (
     <main className="flex-1 overflow-auto p-6">
       <div className="mb-6 flex items-center justify-between">
@@ -162,63 +172,62 @@ export default function AtividadesPage() {
         </Button>
       </div>
 
-      {/* Filtros */}
+      {/* Seção de Filtros e Exportação */}
       <div className="mb-6 grid grid-cols-1 md:grid-cols-4 gap-4">
-        <div className="relative flex items-center">
-          <Search className="absolute left-3 w-5 h-5 text-gray-400" />
-          <Input
-            placeholder="Pesquisar atividades..."
-            value={filtros.texto}
-            onChange={e => setFiltros(prev => ({ ...prev, texto: e.target.value }))}
-            className="pl-10"
+        <div className="flex-1">
+          <SearchInput
+            placeholder="Buscar atividade..."
+            value={filtros.termoBusca}
+            onChange={(e) => setFiltros(prev => ({ 
+              ...prev, 
+              termoBusca: e.target.value 
+            }))}
           />
         </div>
-
+        
         <Select
           value={filtros.tipo}
-          onValueChange={value => setFiltros(prev => ({ ...prev, tipo: value }))}
+          onValueChange={(value) => setFiltros(prev => ({ 
+            ...prev, 
+            tipo: value 
+          }))}
         >
           <SelectTrigger>
-            <SelectValue placeholder="Todos Tipos" />
+            <SelectValue placeholder="Todos os tipos" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="todos">Todos Tipos</SelectItem>
+            <SelectItem value="todos">Todos os tipos</SelectItem>
             <SelectItem value="audiencia">Audiência</SelectItem>
-            <SelectItem value="peticao">Petição</SelectItem>
-            <SelectItem value="diligencia">Diligência</SelectItem>
-            <SelectItem value="outro">Outros</SelectItem>
+            <SelectItem value="prazo">Prazo</SelectItem>
+            <SelectItem value="reuniao">Reunião</SelectItem>
           </SelectContent>
         </Select>
 
         <Select
           value={filtros.status}
-          onValueChange={value => setFiltros(prev => ({ ...prev, prioridade: value }))}
+          onValueChange={(value) => setFiltros(prev => ({ 
+            ...prev, 
+            status: value 
+          }))}
         >
           <SelectTrigger>
-            <SelectValue placeholder="Todos Status" />
+            <SelectValue placeholder="Todos os status" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="todos">Todos Status</SelectItem>
+            <SelectItem value="todos">Todos os status</SelectItem>
             <SelectItem value="pendente">Pendente</SelectItem>
+            <SelectItem value="em_andamento">Em Andamento</SelectItem>
             <SelectItem value="concluida">Concluída</SelectItem>
-            <SelectItem value="atrasada">Atrasada</SelectItem>
           </SelectContent>
         </Select>
 
-        <Select
-          value={filtros.prioridade}
-          onValueChange={value => setFiltros(prev => ({ ...prev, prioridade: value }))}
+        <Button 
+          onClick={exportarParaExcel} 
+          className="flex items-center justify-center gap-2"
         >
-          <SelectTrigger>
-            <SelectValue placeholder="Todas Prioridades" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="todos">Todas Prioridades</SelectItem>
-            <SelectItem value="alta">Alta</SelectItem>
-            <SelectItem value="media">Média</SelectItem>
-            <SelectItem value="baixa">Baixa</SelectItem>
-          </SelectContent>
-        </Select>
+          <Download className="w-5 h-5" />
+          Exportar Relatório
+        </Button>
       </div>
 
       {/* Estatísticas Rápidas */}
@@ -290,30 +299,32 @@ export default function AtividadesPage() {
                 <div className="flex flex-col gap-2">
                   <Button
                     variant="outline"
+                    size="sm"
                     onClick={() => {
                       setAtividadeEditando(atividade);
                       setIsModalOpen(true);
                     }}
                   >
-                    Editar
+                    <Edit className="w-4 h-4" />
                   </Button>
                   {atividade.status !== 'concluida' && (
                     <Button
                       variant="outline"
+                      size="sm"
                       className="text-green-600 border-green-100 hover:bg-green-50"
                       onClick={() => marcarComoConcluida(atividade.id)}
                     >
-                      <CheckCircle className="w-4 h-4 mr-2" />
-                      Concluir
+                      <CheckCircle className="w-4 h-4" />
                     </Button>
                   )}
-              <Button
-                variant="destructive"
-                className="text-white bg-destructive hover:bg-destructive/90 dark:text-destructive-foreground"
-                onClick={() => handleDelete(atividade.id)}
-              >
-                Excluir
-              </Button>
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    className="text-white bg-destructive hover:bg-destructive/90 dark:text-destructive-foreground"
+                    onClick={() => handleDelete(atividade.id)}
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
                 </div>
               </div>
             </div>

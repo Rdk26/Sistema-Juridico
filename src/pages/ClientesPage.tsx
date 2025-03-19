@@ -17,7 +17,8 @@ import {
   File,
   Eye,
   Upload,
-  Download
+  Download,
+  Filter
 } from 'lucide-react';
 import { Skeleton } from '../components/Skeleton';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '../components/ui/Dialog';
@@ -26,6 +27,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { Button } from '../components/ui/Button';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '../components/ui/Tabs';
 import { ResponsiveContainer, PieChart as RechartsPieChart, Pie, Cell, Tooltip } from 'recharts';
+import { SearchInput } from '../components/ui/SearchInput';
 
 type Cliente = {
   id: number;
@@ -147,7 +149,7 @@ export default function ClientesPage() {
   const [carregando, setCarregando] = useState(true);
   const [visualizacao, setVisualizacao] = useState<'tabela' | 'cards'>('tabela');
   const [filtros, setFiltros] = useState({
-    texto: '',
+    termoBusca: '',
     tipo: 'todos',
     status: 'todos',
     data: ''
@@ -166,9 +168,9 @@ export default function ClientesPage() {
   }, []);
 
   const clientesFiltrados = clientes.filter(cliente => {
-    const correspondeTexto = cliente.nome.toLowerCase().includes(filtros.texto.toLowerCase()) ||
-      cliente.empresa.toLowerCase().includes(filtros.texto.toLowerCase()) ||
-      cliente.email.toLowerCase().includes(filtros.texto.toLowerCase());
+    const correspondeTexto = cliente.nome.toLowerCase().includes(filtros.termoBusca.toLowerCase()) ||
+      cliente.empresa.toLowerCase().includes(filtros.termoBusca.toLowerCase()) ||
+      cliente.email.toLowerCase().includes(filtros.termoBusca.toLowerCase());
 
     const correspondeTipo = filtros.tipo === 'todos' || cliente.tipo === filtros.tipo;
     const correspondeStatus = filtros.status === 'todos' || cliente.status === filtros.status;
@@ -315,6 +317,11 @@ export default function ClientesPage() {
     }
   };
 
+  const exportarParaExcel = () => {
+    // Implemente a lógica para exportar para Excel
+    console.log('Exportar para Excel');
+  };
+
   return (
     <main className="flex-1 overflow-auto p-6">
       <div className="mb-6 flex items-center justify-between">
@@ -341,52 +348,60 @@ export default function ClientesPage() {
         </Button>
       </div>
 
-      {/* Filtros e Métricas */}
+      {/* Seção de Filtros e Exportação */}
       <div className="mb-6 grid grid-cols-1 md:grid-cols-4 gap-4">
-        <div className="relative flex items-center">
-          <Search className="absolute left-3 w-5 h-5 text-gray-400" />
-          <Input
-            placeholder="Pesquisar clientes..."
-            value={filtros.texto}
-            onChange={evento => setFiltros(anterior => ({ ...anterior, texto: evento.target.value }))}
-            className="pl-10"
+        <div className="flex-1">
+          <SearchInput
+            placeholder="Buscar cliente..."
+            value={filtros.termoBusca}
+            onChange={(e) => setFiltros(prev => ({ 
+              ...prev, 
+              termoBusca: e.target.value 
+            }))}
           />
         </div>
-
+        
         <Select
           value={filtros.tipo}
-          onValueChange={valor => setFiltros(anterior => ({ ...anterior, tipo: valor }))}
+          onValueChange={(value) => setFiltros(prev => ({ 
+            ...prev, 
+            tipo: value 
+          }))}
         >
           <SelectTrigger>
-            <SelectValue placeholder="Todos Tipos" />
+            <SelectValue placeholder="Todos os tipos" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="todos">Todos Tipos</SelectItem>
-            <SelectItem value="PessoaSingular">Pessoa Singular</SelectItem>
-            <SelectItem value="PessoaColetiva">Pessoa Coletiva</SelectItem>
+            <SelectItem value="todos">Todos os tipos</SelectItem>
+            <SelectItem value="pessoa_fisica">Pessoa Física</SelectItem>
+            <SelectItem value="pessoa_juridica">Pessoa Jurídica</SelectItem>
           </SelectContent>
         </Select>
 
         <Select
           value={filtros.status}
-          onValueChange={valor => setFiltros(anterior => ({ ...anterior, status: valor }))}
+          onValueChange={(value) => setFiltros(prev => ({ 
+            ...prev, 
+            status: value 
+          }))}
         >
           <SelectTrigger>
-            <SelectValue placeholder="Todos Status" />
+            <SelectValue placeholder="Todos os status" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="todos">Todos Status</SelectItem>
+            <SelectItem value="todos">Todos os status</SelectItem>
             <SelectItem value="ativo">Ativo</SelectItem>
             <SelectItem value="inativo">Inativo</SelectItem>
-            <SelectItem value="potencial">Potencial</SelectItem>
           </SelectContent>
         </Select>
 
-        <Input
-          type="date"
-          value={filtros.data}
-          onChange={evento => setFiltros(anterior => ({ ...anterior, data: evento.target.value }))}
-        />
+        <Button 
+          onClick={exportarParaExcel} 
+          className="flex items-center justify-center gap-2"
+        >
+          <Download className="w-5 h-5" />
+          Exportar Relatório
+        </Button>
       </div>
 
       {/* Estatísticas */}
@@ -580,180 +595,181 @@ export default function ClientesPage() {
 
       {/* Modal de Detalhes */}
       <Dialog open={isDetalhesModalOpen} onOpenChange={setIsDetalhesModalOpen}>
-      <DialogContent className="sm:max-w-[800px] p-8">
-        <DialogHeader>
-          <DialogTitle>
-            <div className="text-2xl font-bold mb-6">
-              Detalhes do Cliente: {clienteVisualizando?.nome}
-            </div>
-          </DialogTitle>
-        </DialogHeader>
-        
-        <div className="grid grid-cols-2 gap-8">
-          <div>
-            <div className="mb-6">
-              <h3 className="text-lg font-semibold mb-2">Informações Principais</h3>
-              <div className="space-y-4 p-4 border rounded-lg">
-                <div className="flex flex-col">
-                  <span className="font-medium text-gray-600">Nome:</span>
-                  <span className="text-lg">{clienteVisualizando?.nome}</span>
+        <DialogContent className="sm:max-w-[800px] p-6">
+          <DialogHeader>
+            <DialogTitle>
+              <div className="text-xl font-bold mb-4">
+                Detalhes do Cliente: {clienteVisualizando?.nome}
+              </div>
+            </DialogTitle>
+          </DialogHeader>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="space-y-6">
+              <div>
+                <h3 className="text-base font-semibold mb-3">Informações Principais</h3>
+                <div className="space-y-3 p-3 border rounded-lg">
+                  <div className="flex justify-between items-center">
+                    <span className="font-medium text-gray-600">Nome:</span>
+                    <span>{clienteVisualizando?.nome}</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="font-medium text-gray-600">Tipo:</span>
+                    <span>
+                      {clienteVisualizando?.tipo === 'PessoaColetiva' 
+                        ? 'Pessoa Coletiva' 
+                        : 'Pessoa Singular'}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="font-medium text-gray-600">NIF:</span>
+                    <span>{clienteVisualizando?.numeroIdentificacaoFiscal}</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="font-medium text-gray-600">Contacto:</span>
+                    <span>{clienteVisualizando?.contacto}</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="font-medium text-gray-600">Email:</span>
+                    <span>{clienteVisualizando?.email}</span>
+                  </div>
+                  {clienteVisualizando?.tipo === 'PessoaColetiva' && (
+                    <div className="flex justify-between items-center">
+                      <span className="font-medium text-gray-600">Empresa:</span>
+                      <span>{clienteVisualizando?.empresa}</span>
+                    </div>
+                  )}
+                  <div className="flex justify-between items-center">
+                    <span className="font-medium text-gray-600">Data de Cadastro:</span>
+                    <span>
+                      {clienteVisualizando?.dataCadastro 
+                        ? new Date(clienteVisualizando.dataCadastro).toLocaleDateString('pt-MZ') 
+                        : ''}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="font-medium text-gray-600">Status:</span>
+                    <span className={`px-2.5 py-0.5 rounded-full text-xs ${obterCorStatus(clienteVisualizando?.status || 'ativo')}`}>
+                      {(clienteVisualizando?.status || 'ativo').toUpperCase()}
+                    </span>
+                  </div>
                 </div>
-                <div className="flex flex-col">
-                  <span className="font-medium text-gray-600">Tipo:</span>
-                  <span className="text-lg">
-                    {clienteVisualizando?.tipo === 'PessoaColetiva' 
-                      ? 'Pessoa Coletiva' 
-                      : 'Pessoa Singular'}
-                  </span>
-                </div>
-                <div className="flex flex-col">
-                  <span className="font-medium text-gray-600">NIF:</span>
-                  <span className="text-lg">{clienteVisualizando?.numeroIdentificacaoFiscal}</span>
-                </div>
-                <div className="flex flex-col">
-                  <span className="font-medium text-gray-600">Contacto:</span>
-                  <span className="text-lg">{clienteVisualizando?.contacto}</span>
-                </div>
-                <div className="flex flex-col">
-                  <span className="font-medium text-gray-600">Email:</span>
-                  <span className="text-lg">{clienteVisualizando?.email}</span>
-                </div>
-                <div className="flex flex-col">
-                  <span className="font-medium text-gray-600">Empresa:</span>
-                  <span className="text-lg">{clienteVisualizando?.empresa}</span>
-                </div>
-                <div className="flex flex-col">
-                  <span className="font-medium text-gray-600">Data de Cadastro:</span>
-                  <span className="text-lg">
-                    {clienteVisualizando?.dataCadastro 
-                      ? new Date(clienteVisualizando.dataCadastro).toLocaleDateString('pt-MZ') 
-                      : ''}
-                  </span>
-                </div>
-                <div className="flex flex-col">
-                  <span className="font-medium text-gray-600">Status:</span>
-                  <span className={`px-2.5 py-0.5 rounded-full text-xs ${obterCorStatus(clienteVisualizando?.status || 'ativo')}`}>
-                    {(clienteVisualizando?.status || 'ativo').toUpperCase()}
-                  </span>
-                </div>
+              </div>
+
+              <div>
+                <h3 className="text-base font-semibold mb-3">Documentos</h3>
+                {clienteVisualizando?.documentos && clienteVisualizando.documentos.length > 0 ? (
+                  <div className="space-y-2">
+                    {clienteVisualizando.documentos.map((documento) => (
+                      <div key={documento.id} className="flex items-center justify-between p-2 border rounded">
+                        <div className="flex items-center gap-2">
+                          <File className="w-4 h-4 text-gray-500" />
+                          <div>
+                            <div className="text-sm font-medium">{documento.nome}</div>
+                            <div className="text-xs text-gray-500">
+                              {new Date(documento.dataUpload).toLocaleDateString('pt-MZ')}
+                            </div>
+                          </div>
+                        </div>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleDownloadDocumento(documento)}
+                        >
+                          <Download className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="p-3 border rounded-lg text-center text-gray-500">
+                    Não há documentos associados a este cliente
+                  </div>
+                )}
               </div>
             </div>
 
-            <div className="mb-6">
-              <h3 className="text-lg font-semibold mb-2">Documentos</h3>
-              {clienteVisualizando?.documentos && clienteVisualizando.documentos.length > 0 ? (
-                <div className="space-y-2">
-                  {clienteVisualizando.documentos.map((documento) => (
-                    <div key={documento.id} className="flex items-center p-3 border rounded-lg">
-                      <File className="w-5 h-5 mr-2 text-gray-500" />
-                      <div className="flex-1">
-                        <div className="font-medium text-gray-600">Nome:</div>
-                        <div className="text-sm">{documento.nome}</div>
-                        <div className="font-medium text-gray-600 mt-1">Tipo:</div>
-                        <div className="text-sm">{documento.tipo}</div>
-                        <div className="font-medium text-gray-600 mt-1">Data de Upload:</div>
-                        <div className="text-sm">
-                          {new Date(documento.dataUpload).toLocaleDateString('pt-MZ')}
+            <div className="space-y-6">
+              <div>
+                <h3 className="text-base font-semibold mb-3">Histórico de Interacções</h3>
+                {clienteVisualizando?.historicoInteracoes && clienteVisualizando.historicoInteracoes.length > 0 ? (
+                  <div className="space-y-3">
+                    {clienteVisualizando.historicoInteracoes.map((interacao) => (
+                      <div key={interacao.id} className="p-3 border rounded-lg">
+                        <div className="flex items-center gap-2 text-sm mb-1">
+                          <Clock className="w-4 h-4" />
+                          <span>{new Date(interacao.data).toLocaleDateString('pt-MZ')}</span>
+                          <span className="capitalize">{interacao.tipo}</span>
                         </div>
+                        <p className="text-sm text-gray-600">{interacao.descricao}</p>
                       </div>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="ml-2"
-                        onClick={() => handleDownloadDocumento(documento)}
-                      >
-                        <Download className="w-4 h-4" />
-                      </Button>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="p-4 border rounded-lg text-center">
-                  <p className="text-gray-500">Não há documentos associados a este cliente</p>
-                </div>
-              )}
-            </div>
-          </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="p-3 border rounded-lg text-center text-gray-500">
+                    Não há histórico de interacções para este cliente
+                  </div>
+                )}
+              </div>
 
-          <div>
-            <div className="mb-6">
-              <h3 className="text-lg font-semibold mb-2">Histórico de Interacções</h3>
-              {clienteVisualizando?.historicoInteracoes && clienteVisualizando.historicoInteracoes.length > 0 ? (
-                <div className="space-y-4">
-                  {clienteVisualizando.historicoInteracoes.map((interacao) => (
-                    <div key={interacao.id} className="p-4 border rounded-lg">
-                      <div className="flex items-center gap-2 text-sm">
-                        <Clock className="w-4 h-4" />
-                        <span>{new Date(interacao.data).toLocaleDateString('pt-MZ')}</span>
-                        <span className="capitalize">{interacao.tipo}</span>
-                      </div>
-                      <p className="text-sm mt-2 text-gray-600">{interacao.descricao}</p>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="p-4 border rounded-lg text-center">
-                  <p className="text-gray-500">Não há histórico de interacções para este cliente</p>
-                </div>
-              )}
-            </div>
-
-            <div className="mb-6">
-              <h3 className="text-lg font-semibold mb-2">Histórico de Serviços</h3>
-              {clienteVisualizando?.historicoServicos && clienteVisualizando.historicoServicos.length > 0 ? (
-                <div className="space-y-4">
-                  {clienteVisualizando.historicoServicos.map(servico => (
-                    <div key={servico.id} className="p-4 border rounded-lg">
-                      <div className="flex flex-col gap-2">
-                        <div className="flex items-center justify-between">
-                          <span className="font-medium text-gray-600">Serviço:</span>
-                          <span className="font-semibold">{servico.servico}</span>
-                        </div>
-                        <div className="flex items-center justify-between">
-                          <span className="font-medium text-gray-600">Advogado:</span>
-                          <span className="font-semibold">{servico.advogado}</span>
-                        </div>
-                        <div className="flex items-center justify-between">
-                          <span className="font-medium text-gray-600">Período:</span>
-                          <span className="font-semibold">
-                            {new Date(servico.dataInicio).toLocaleDateString('pt-MZ')} - 
-                            {servico.dataConclusao 
-                              ? new Date(servico.dataConclusao).toLocaleDateString('pt-MZ') 
-                              : 'Em andamento'}
-                          </span>
-                        </div>
-                        <div className="flex items-center justify-between">
-                          <span className="font-medium text-gray-600">Status:</span>
-                          <span className={`px-2 py-1 rounded-full text-xs ${getStatusColor(servico.status)}`}>
-                            {servico.status}
-                          </span>
-                        </div>
-                        {servico.comentarios && (
-                          <div className="mt-2">
-                            <span className="font-medium text-gray-600">Comentários:</span>
-                            <p className="text-gray-600">{servico.comentarios}</p>
+              <div>
+                <h3 className="text-base font-semibold mb-3">Histórico de Serviços</h3>
+                {clienteVisualizando?.historicoServicos && clienteVisualizando.historicoServicos.length > 0 ? (
+                  <div className="space-y-3">
+                    {clienteVisualizando.historicoServicos.map(servico => (
+                      <div key={servico.id} className="p-3 border rounded-lg">
+                        <div className="space-y-2">
+                          <div className="flex justify-between items-center">
+                            <span className="font-medium text-gray-600">Serviço:</span>
+                            <span className="font-medium">{servico.servico}</span>
                           </div>
-                        )}
+                          <div className="flex justify-between items-center">
+                            <span className="font-medium text-gray-600">Advogado:</span>
+                            <span>{servico.advogado}</span>
+                          </div>
+                          <div className="flex justify-between items-center">
+                            <span className="font-medium text-gray-600">Período:</span>
+                            <span>
+                              {new Date(servico.dataInicio).toLocaleDateString('pt-MZ')} - 
+                              {servico.dataConclusao 
+                                ? new Date(servico.dataConclusao).toLocaleDateString('pt-MZ') 
+                                : 'Em andamento'}
+                            </span>
+                          </div>
+                          <div className="flex justify-between items-center">
+                            <span className="font-medium text-gray-600">Status:</span>
+                            <span className={`px-2 py-1 rounded-full text-xs ${getStatusColor(servico.status)}`}>
+                              {servico.status}
+                            </span>
+                          </div>
+                          {servico.comentarios && (
+                            <div className="mt-2 pt-2 border-t">
+                              <span className="font-medium text-gray-600">Comentários:</span>
+                              <p className="text-sm text-gray-600 mt-1">{servico.comentarios}</p>
+                            </div>
+                          )}
+                        </div>
                       </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="p-4 border rounded-lg text-center">
-                  <p className="text-gray-500">Não há histórico de serviços para este cliente</p>
-                </div>
-              )}
+                    ))}
+                  </div>
+                ) : (
+                  <div className="p-3 border rounded-lg text-center text-gray-500">
+                    Não há histórico de serviços para este cliente
+                  </div>
+                )}
+              </div>
             </div>
           </div>
-        </div>
-        
-        <DialogFooter>
-          <Button variant="outline" onClick={() => setIsDetalhesModalOpen(false)}>
-            Fechar
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+          
+          <DialogFooter>
+            <div className="mt-6">
+              <Button variant="outline" onClick={() => setIsDetalhesModalOpen(false)}>
+                Fechar
+              </Button>
+            </div>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Modal de Edição */}
       <Dialog open={modalAberto} onOpenChange={setModalAberto}>

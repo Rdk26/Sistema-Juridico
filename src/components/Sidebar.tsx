@@ -53,29 +53,29 @@ export default function Sidebar() {
   };
 
   return (
-    <aside className={`group h-screen flex flex-col w-20 hover:w-64 transition-all duration-300 ease-in-out shadow-xl
+    <aside className={`fixed md:relative z-50 h-screen flex flex-col w-20 hover:w-64 transition-all duration-300 ease-in-out shadow-xl group
       ${theme === 'dark' 
         ? 'bg-[#2A3F54] border-r border-gray-700' 
         : 'bg-white border-r border-gray-200'}`}>
       
       {/* Cabeçalho */}
-      <div className="p-6 flex items-center gap-3 overflow-hidden">
+      <div className="p-4 md:p-6 flex items-center gap-3">
         <Gavel className={`w-8 h-8 min-w-[32px] transition-transform duration-300 group-hover:rotate-12 
           ${theme === 'dark' ? 'text-white' : 'text-gray-800'}`} />
-        <h1 className={`text-xl font-semibold whitespace-nowrap opacity-0 group-hover:opacity-100 
-          transition-opacity duration-200 ${theme === 'dark' ? 'text-white' : 'text-gray-800'}`}>
+        <h1 className={`text-xl font-semibold whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-300
+          ${theme === 'dark' ? 'text-white' : 'text-gray-800'}`}>
           MD Legal Suite
         </h1>
       </div>
 
       {/* Menu Principal */}
-      <nav className="mt-6 flex-1 px-2">
+      <nav className="mt-6 flex-1 px-2 overflow-y-auto">
         {menuItems.map((item) => (
           <NavLink
             key={item.label}
             to={`/${item.label.toLowerCase()}`}
             className={({ isActive }) => 
-              `flex items-center gap-4 px-4 py-3 rounded-lg mx-2 mb-2 group
+              `flex items-center gap-4 px-4 py-3 rounded-lg mx-2 mb-2
               transition-all duration-300 
               ${theme === 'dark' 
                 ? 'hover:bg-[#34495E]' 
@@ -86,8 +86,7 @@ export default function Sidebar() {
             <item.icon className={`w-6 h-6 min-w-[24px] transition-transform duration-300 
               group-hover:scale-110 ${theme === 'dark' ? 'text-gray-300' : 'text-gray-600'}`} />
             
-            <span className={`whitespace-nowrap opacity-0 group-hover:opacity-100 
-              transition-opacity duration-300 text-sm overflow-hidden
+            <span className={`whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-300
               ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>
               {item.label}
             </span>
@@ -96,43 +95,42 @@ export default function Sidebar() {
       </nav>
 
       {/* Seção do Usuário */}
-      <div className={`mt-auto p-4 border-t ${
+      <div className={`p-4 border-t ${
         theme === 'dark' 
           ? 'border-[#34495E] hover:bg-[#34495E]' 
           : 'border-gray-200 hover:bg-gray-100'
       } transition-colors`}>
-        <div className="flex items-center gap-3 overflow-hidden">
-            {/* Avatar do Usuário */}
-            <div className="min-w-[40px]">
-              {userData.avatar ? (
-                <img 
-                  src={userData.avatar} 
-                  alt="Avatar do Usuário" 
-                  className="w-10 h-10 rounded-full object-cover"
-                />
-              ) : (
-                <div className="w-10 h-10 rounded-full bg-blue-600 flex items-center justify-center">
-                  <span className="font-medium text-white">
-                    {getInitials(userData.name)}
-                  </span>
-                </div>
-              )}
-            </div>
+        <div className="flex items-center gap-3">
+          {/* Avatar do Usuário */}
+          <div className="min-w-[40px]">
+            {userData.avatar ? (
+              <img 
+                src={userData.avatar} 
+                alt="Avatar do Usuário" 
+                className="w-10 h-10 rounded-full object-cover"
+              />
+            ) : (
+              <div className="w-10 h-10 rounded-full bg-blue-600 flex items-center justify-center">
+                <span className="font-medium text-white">
+                  {getInitials(userData.name)}
+                </span>
+              </div>
+            )}
+          </div>
 
-
-            {/* Informações do Usuário */}
-            <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-              <p className="font-medium truncate">{userData.name}</p>
-              <p className="text-sm text-gray-300 truncate">{userData.email}</p>
-              
-              {/* Botão de Logout */}
-              <button className="mt-2 flex items-center gap-2 text-sm hover:text-red-400 transition-colors">
-                <LogOut className="w-4 h-4" />
-                <span className="whitespace-nowrap">Sair da Conta</span>
-              </button>
-            </div>
+          {/* Informações do Usuário */}
+          <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+            <p className="font-medium truncate">{userData.name}</p>
+            <p className="text-sm text-gray-300 truncate">{userData.email}</p>
+            
+            {/* Botão de Logout */}
+            <button className="mt-2 flex items-center gap-2 text-sm hover:text-red-400 transition-colors">
+              <LogOut className="w-4 h-4" />
+              <span>Sair da Conta</span>
+            </button>
           </div>
         </div>
+      </div>
     </aside>
   );
 }

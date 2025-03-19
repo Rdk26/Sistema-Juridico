@@ -16,7 +16,9 @@ import {
   FileText,
   Edit,
   Eye,
-  Download
+  Download,
+  Filter,
+  X
 } from 'lucide-react';
 import { Skeleton } from '../components/Skeleton';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '../components/ui/Dialog';
@@ -25,6 +27,7 @@ import { Input } from '../components/ui/Input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/Select';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '../components/ui/Tabs';
 import { ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
+import { SearchInput } from '../components/ui/SearchInput';
 
 type Funcionario = {
   id: number;
@@ -131,11 +134,13 @@ export default function PessoalInternoPage() {
   const [funcionarios, setFuncionarios] = useState<Funcionario[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [visualizacao, setVisualizacao] = useState<'tabela' | 'cards'>('tabela');
-  const [filtroTexto, setFiltroTexto] = useState('');
-  const [filtroDepartamento, setFiltroDepartamento] = useState('todos');
-  const [filtroStatus, setFiltroStatus] = useState('todos');
-  const [filtroDataInicio, setFiltroDataInicio] = useState('');
-  const [filtroDataFim, setFiltroDataFim] = useState('');
+  const [filtros, setFiltros] = useState({
+    termoBusca: '',
+    departamento: 'todos',
+    status: 'todos',
+    dataInicio: '',
+    dataFim: ''
+  });
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
   const [funcionarioEditando, setFuncionarioEditando] = useState<Funcionario>({
@@ -161,15 +166,15 @@ export default function PessoalInternoPage() {
   }, []);
 
   const funcionariosFiltrados = funcionarios.filter(funcionario => {
-    const correspondeTexto = funcionario.nome.toLowerCase().includes(filtroTexto.toLowerCase()) ||
-      funcionario.cargo.toLowerCase().includes(filtroTexto.toLowerCase()) ||
-      funcionario.departamento.toLowerCase().includes(filtroTexto.toLowerCase());
+    const correspondeTexto = funcionario.nome.toLowerCase().includes(filtros.termoBusca.toLowerCase()) ||
+      funcionario.cargo.toLowerCase().includes(filtros.termoBusca.toLowerCase()) ||
+      funcionario.departamento.toLowerCase().includes(filtros.termoBusca.toLowerCase());
 
-    const correspondeDepartamento = filtroDepartamento === 'todos' || funcionario.departamento === filtroDepartamento;
-    const correspondeStatus = filtroStatus === 'todos' || funcionario.status === filtroStatus;
-    const correspondeData = !filtroDataInicio || !filtroDataFim || 
-      (new Date(funcionario.dataContratacao) >= new Date(filtroDataInicio) &&
-       new Date(funcionario.dataContratacao) <= new Date(filtroDataFim));
+    const correspondeDepartamento = filtros.departamento === 'todos' || funcionario.departamento === filtros.departamento;
+    const correspondeStatus = filtros.status === 'todos' || funcionario.status === filtros.status;
+    const correspondeData = !filtros.dataInicio || !filtros.dataFim || 
+      (new Date(funcionario.dataContratacao) >= new Date(filtros.dataInicio) &&
+       new Date(funcionario.dataContratacao) <= new Date(filtros.dataFim));
 
     return correspondeTexto && correspondeDepartamento && correspondeStatus && correspondeData;
   });
@@ -245,6 +250,11 @@ export default function PessoalInternoPage() {
     }
   };
 
+  const exportarParaExcel = () => {
+    // Implemente a lógica para exportar os dados para Excel
+    console.log('Exportar para Excel');
+  };
+
   return (
     <main className="flex-1 overflow-auto p-6">
       <div className="mb-6 flex items-center justify-between">
@@ -269,57 +279,61 @@ export default function PessoalInternoPage() {
         </Button>
       </div>
 
+      {/* Seção de Filtros e Exportação */}
       <div className="mb-6 grid grid-cols-1 md:grid-cols-4 gap-4">
-        <div className="relative flex items-center">
-          <Search className="absolute left-3 w-5 h-5 text-gray-400" />
-          <Input
-            placeholder="Pesquisar..."
-            value={filtroTexto}
-            onChange={(evento) => setFiltroTexto(evento.target.value)}
-            className="pl-10"
+        <div className="flex-1">
+          <SearchInput
+            placeholder="Buscar funcionário..."
+            value={filtros.termoBusca}
+            onChange={(e) => setFiltros(prev => ({ 
+              ...prev, 
+              termoBusca: e.target.value 
+            }))}
           />
         </div>
-
-        <Select value={filtroDepartamento} onValueChange={setFiltroDepartamento}>
+        
+        <Select
+          value={filtros.departamento}
+          onValueChange={(value) => setFiltros(prev => ({ 
+            ...prev, 
+            departamento: value 
+          }))}
+        >
           <SelectTrigger>
-            <SelectValue placeholder="Todos Departamentos" />
+            <SelectValue placeholder="Todos os departamentos" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="todos">Todos Departamentos</SelectItem>
-            {departamentos.map(departamento => (
-              <SelectItem key={departamento} value={departamento}>{departamento}</SelectItem>
-            ))}
+            <SelectItem value="todos">Todos os departamentos</SelectItem>
+            <SelectItem value="juridico">Jurídico</SelectItem>
+            <SelectItem value="administrativo">Administrativo</SelectItem>
+            <SelectItem value="financeiro">Financeiro</SelectItem>
           </SelectContent>
         </Select>
 
-        <Select value={filtroStatus} onValueChange={setFiltroStatus}>
+        <Select
+          value={filtros.status}
+          onValueChange={(value) => setFiltros(prev => ({ 
+            ...prev, 
+            status: value 
+          }))}
+        >
           <SelectTrigger>
-            <SelectValue placeholder="Todos Status" />
+            <SelectValue placeholder="Todos os status" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="todos">Todos Status</SelectItem>
+            <SelectItem value="todos">Todos os status</SelectItem>
             <SelectItem value="ativo">Ativo</SelectItem>
             <SelectItem value="inativo">Inativo</SelectItem>
           </SelectContent>
         </Select>
 
-        <div className="flex flex-col gap-2">
-          <label className="text-sm font-medium text-gray-700">Data Início</label>
-          <Input
-            type="date"
-            value={filtroDataInicio}
-            onChange={(evento) => setFiltroDataInicio(evento.target.value)}
-          />
-        </div>
-
-        <div className="flex flex-col gap-2">
-          <label className="text-sm font-medium text-gray-700">Data Fim</label>
-          <Input
-            type="date"
-            value={filtroDataFim}
-            onChange={(evento) => setFiltroDataFim(evento.target.value)}
-          />
-        </div>
+        <Button 
+          onClick={exportarParaExcel} 
+          className="flex items-center justify-center gap-2"
+        >
+          <Download className="w-5 h-5" />
+          Exportar Relatório
+        </Button>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">

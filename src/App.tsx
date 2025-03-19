@@ -1,4 +1,3 @@
-
 import { Routes, Route } from 'react-router-dom';
 import { ThemeProvider } from './components/ThemeProvider';
 import Sidebar from './components/Sidebar';
@@ -19,22 +18,24 @@ function App() {
   return (
     <ThemeProvider>
       <Toaster position="bottom-right" />
-      <div className="flex h-screen bg-gray-50 dark:bg-gray-900">
+      <div className="flex flex-col md:flex-row h-screen bg-gray-50 dark:bg-gray-900">
         <Sidebar />
-        <Routes>
-          <Route path="/" element={<Dashboard />} />
-          <Route path="/Dashboard" element={<Dashboard />} />
-          <Route path="/Atividades" element={<AtividadesPage />} />
-          <Route path="/Configurações" element={<ConfiguracoesPage />} />
-          <Route path="/financeiro" element={<FinanceiroPage />} />
-          <Route path="/Notificações" element={<NotificacoesPage />} />
-          <Route path="/Modelos" element={<ModelosPage />} />
-          <Route path="/Clientes" element={<ClientesPage />} />
-          <Route path="/Pessoal Interno" element={<PessoalInternoPage />} />
-          <Route path="/processos" element={<ProcessosPage />} />
-          <Route path="/Relatórios" element={<RelatoriosPage />} />
-          <Route path="/Suporte" element={<SuportePage />} />
-        </Routes>
+        <div className="flex-1 overflow-auto">
+          <Routes>
+            <Route path="/" element={<Dashboard />} />
+            <Route path="/Dashboard" element={<Dashboard />} />
+            <Route path="/Atividades" element={<AtividadesPage />} />
+            <Route path="/Configurações" element={<ConfiguracoesPage />} />
+            <Route path="/financeiro" element={<FinanceiroPage />} />
+            <Route path="/Notificações" element={<NotificacoesPage />} />
+            <Route path="/Modelos" element={<ModelosPage />} />
+            <Route path="/Clientes" element={<ClientesPage />} />
+            <Route path="/Pessoal Interno" element={<PessoalInternoPage />} />
+            <Route path="/processos" element={<ProcessosPage />} />
+            <Route path="/Relatórios" element={<RelatoriosPage />} />
+            <Route path="/Suporte" element={<SuportePage />} />
+          </Routes>
+        </div>
       </div>
     </ThemeProvider>
   );

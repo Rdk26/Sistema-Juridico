@@ -11,12 +11,15 @@ import {
   Upload, 
   Trash2, 
   Pencil,
-  X
+  X,
+  Edit,
+  Filter
 } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '../components/ui/Dialog';
 import { Input } from '../components/ui/Input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/Select';
 import { Button } from '../components/ui/Button';
+import { SearchInput } from '../components/ui/SearchInput';
 
 type Modelo = {
   id: number;
@@ -214,39 +217,40 @@ export default function ModelosPage() {
     <main className="flex-1 overflow-auto p-6">
       <h1 className="text-3xl font-bold mb-8 texto-escuro">Modelos Jurídicos</h1>
 
-      {/* Filtros e Busca */}
-      <div className="mb-8 grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-          <input
-            type="text"
-            placeholder="Buscar modelos..."
-            className="pl-10 w-full card-juridico p-3"
+      {/* Seção de Filtros e Exportação */}
+      <div className="mb-6 grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="flex-1">
+          <SearchInput
+            placeholder="Buscar modelo..."
             value={busca}
-            onChange={(evento) => setBusca(evento.target.value)}
+            onChange={(e) => setBusca(e.target.value)}
           />
         </div>
         
-        <select
-          className="card-juridico p-3"
+        <Select
           value={categoriaSelecionada}
-          onChange={(evento) => setCategoriaSelecionada(evento.target.value)}
+          onValueChange={(value) => setCategoriaSelecionada(value)}
         >
-          <option value="todos">Todos</option>
-          {categorias.map(categoria => (
-            <option key={categoria} value={categoria}>
-              {categoria}
-            </option>
-          ))}
-        </select>
-        
-        <button 
-          className="btn-primary flex items-center justify-center gap-2"
-          onClick={() => setIsModalOpen(true)}
+          <SelectTrigger>
+            <SelectValue placeholder="Todas as categorias" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="todos">Todas as categorias</SelectItem>
+            {categorias.map(categoria => (
+              <SelectItem key={categoria} value={categoria}>
+                {categoria}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
+        <Button 
+          onClick={() => setIsModalOpen(true)} 
+          className="flex items-center justify-center gap-2"
         >
           <Plus className="w-5 h-5" />
           Novo Modelo
-        </button>
+        </Button>
       </div>
 
       {/* Modal de Edição/Criação */}

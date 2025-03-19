@@ -5,18 +5,16 @@ import {
   Lock,
   Bell,
   Shield,
-  Globe,
   Palette,
   Trash2,
   Save,
   Settings,
-  Download,
-  FileText,
-  Sun,
+  Loader,
+  AlertCircle,
   Moon,
   Monitor,
-  Loader,
-  AlertCircle
+  Sun,
+  Globe
 } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/Select';
@@ -25,7 +23,6 @@ import { useTheme } from '../components/ThemeProvider';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '../components/ui/Dialog';
 import { Input } from '../components/ui/Input';
 import { toast } from 'react-hot-toast';
-import { saveAs } from 'file-saver';
 
 type UserData = {
   name: string;
@@ -148,17 +145,6 @@ export default function ConfiguracoesPage() {
     } catch (error) {
       toast.error('Erro ao alterar senha');
     }
-  };
-
-  // Exportar dados
-  const handleExportData = (type: 'all' | 'documents') => {
-    const data = type === 'all' ? 
-      { userData, settings } : 
-      userData;
-
-    const blob = new Blob([JSON.stringify(data)], { type: 'application/json' });
-    saveAs(blob, `backup-${type}-${new Date().toISOString()}.json`);
-    toast.success('Exportação realizada com sucesso');
   };
 
   // Excluir conta
@@ -405,26 +391,6 @@ export default function ConfiguracoesPage() {
           </h2>
 
           <div className="space-y-6">
-            <div>
-              <h3 className="font-medium mb-2">Exportar Dados</h3>
-              <div className="flex gap-4">
-                <Button 
-                  variant="outline"
-                  onClick={() => handleExportData('all')}
-                >
-                  <Download className="w-4 h-4 mr-2" />
-                  Exportar Tudo
-                </Button>
-                <Button 
-                  variant="outline"
-                  onClick={() => handleExportData('documents')}
-                >
-                  <FileText className="w-4 h-4 mr-2" />
-                  Somente Documentos
-                </Button>
-              </div>
-            </div>
-
             <div className="border-t pt-6">
               <h3 className="font-medium text-vermelho mb-2 flex items-center gap-2">
                 <Trash2 className="w-5 h-5" />

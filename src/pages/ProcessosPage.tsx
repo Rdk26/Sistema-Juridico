@@ -9,15 +9,19 @@ import {
   Edit, 
   Trash2, 
   ChevronUp, 
-  ChevronDown 
+  ChevronDown,
+  Eye,
+  Upload
 } from 'lucide-react';
 import { Skeleton } from '../components/Skeleton';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '../components/ui/Dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '../components/ui/Dialog';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/Select';
 import ExcelJS from 'exceljs';
 import { saveAs } from 'file-saver';
+import { SearchInput } from '../components/ui/SearchInput';
+import { Label } from '../components/ui/Label';
 
 
 type Processo = {
@@ -29,6 +33,12 @@ type Processo = {
   dataInicio: string;
   prazoFinal: string;
   responsavel: string;
+  documentos: {
+    nome: string;
+    url: string;
+    tipo: string;
+    dataUpload: string;
+  }[];
 };
 
 const processosMock: Processo[] = [
@@ -40,7 +50,8 @@ const processosMock: Processo[] = [
     status: "ativo",
     dataInicio: "2024-03-01",
     prazoFinal: "2024-06-30",
-    responsavel: "Dra. Ana Mondlane"
+    responsavel: "Dra. Ana Mondlane",
+    documentos: []
   },
   // ... outros processos
 ];
@@ -64,6 +75,8 @@ export default function PaginaDeProcessos() {
   });
   const [modalAberto, setModalAberto] = useState(false);
   const [processoEmEdicao, setProcessoEmEdicao] = useState<Processo | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [documentos, setDocumentos] = useState<File[]>([]);
 
   useEffect(() => {
     setTimeout(() => {
@@ -174,6 +187,18 @@ export default function PaginaDeProcessos() {
     taxaSucesso: '82%'
   });
 
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files) {
+      setDocumentos(Array.from(e.target.files));
+    }
+  };
+
+  const handleUpload = async () => {
+    // Aqui você implementaria a lógica de upload real
+    console.log('Uploading files:', documentos);
+    setDocumentos([]);
+  };
+
   return (
     <main className="flex-1 overflow-auto p-6">
       <div className="flex justify-between items-center mb-8">
@@ -186,12 +211,9 @@ export default function PaginaDeProcessos() {
 
       {/* Seção de Filtros e Exportação */}
       <div className="mb-6 grid grid-cols-1 md:grid-cols-4 gap-4">
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-          <input
-            type="text"
+        <div className="flex-1">
+          <SearchInput
             placeholder="Buscar processo..."
-            className="pl-10 w-full card-juridico p-3"
             value={filtros.termoBusca}
             onChange={(e) => setFiltros(prev => ({ 
               ...prev, 
@@ -200,23 +222,26 @@ export default function PaginaDeProcessos() {
           />
         </div>
         
-        <select
-          className="card-juridico p-3"
+        <Select
           value={filtros.statusSelecionado}
-          onChange={(e) => setFiltros(prev => ({ 
+          onValueChange={(value) => setFiltros(prev => ({ 
             ...prev, 
-            statusSelecionado: e.target.value 
+            statusSelecionado: value 
           }))}
         >
-          <option value="todos">Todos os status</option>
-          <option value="ativo">Ativo</option>
-          <option value="arquivado">Arquivado</option>
-          <option value="concluido">Concluído</option>
-        </select>
+          <SelectTrigger>
+            <SelectValue placeholder="Todos os status" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="todos">Todos os status</SelectItem>
+            <SelectItem value="ativo">Ativo</SelectItem>
+            <SelectItem value="arquivado">Arquivado</SelectItem>
+            <SelectItem value="concluido">Concluído</SelectItem>
+          </SelectContent>
+        </Select>
 
-        <input
+        <Input
           type="date"
-          className="card-juridico p-3"
           value={filtros.dataSelecionada}
           onChange={(e) => setFiltros(prev => ({ 
             ...prev, 
@@ -315,6 +340,16 @@ export default function PaginaDeProcessos() {
                       <Button 
                         variant="outline" 
                         size="sm"
+                        onClick={() => {
+                          setProcessoEmEdicao(processo);
+                          setIsModalOpen(true);
+                        }}
+                      >
+                        <Eye className="w-4 h-4" />
+                      </Button>
+                      <Button 
+                        variant="outline" 
+                        size="sm"
                         onClick={() => { 
                           setProcessoEmEdicao(processo); 
                           setModalAberto(true); 
@@ -362,14 +397,90 @@ export default function PaginaDeProcessos() {
       )}
 
       {/* Modal de Edição/Criação */}
+      <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
+        <DialogContent className="max-w-3xl">
+          <DialogHeader>
+            <DialogTitle>Detalhes do Processo</DialogTitle>
+            <DialogDescription>
+              Visualize os detalhes e documentos do processo
+            </DialogDescription>
+          </DialogHeader>
+
+          {processoEmEdicao && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label>Número do Processo</Label>
+                  <p className="text-sm text-gray-500">{processoEmEdicao.numeroProcesso}</p>
+                </div>
+                <div>
+                  <Label>Cliente</Label>
+                  <p className="text-sm text-gray-500">{processoEmEdicao.cliente}</p>
+                </div>
+                <div>
+                  <Label>Status</Label>
+                  <p className="text-sm text-gray-500">{processoEmEdicao.status}</p>
+                </div>
+                <div>
+                  <Label>Responsável</Label>
+                  <p className="text-sm text-gray-500">{processoEmEdicao.responsavel}</p>
+                </div>
+                <div>
+                  <Label>Data de Início</Label>
+                  <p className="text-sm text-gray-500">{processoEmEdicao.dataInicio}</p>
+                </div>
+                <div>
+                  <Label>Prazo Final</Label>
+                  <p className="text-sm text-gray-500">{processoEmEdicao.prazoFinal}</p>
+                </div>
+              </div>
+
+              <div>
+                <Label>Descrição</Label>
+                <p className="text-sm text-gray-500">{processoEmEdicao.descricao}</p>
+              </div>
+
+              <div>
+                <Label>Documentos</Label>
+                <div className="mt-2 space-y-2">
+                  {processoEmEdicao.documentos.map((doc, index) => (
+                    <div key={index} className="flex items-center justify-between p-2 border rounded">
+                      <div className="flex items-center gap-2">
+                        <Download className="w-4 h-4" />
+                        <span className="text-sm">{doc.nome}</span>
+                      </div>
+                      <Button variant="ghost" size="sm">
+                        <Download className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsModalOpen(false)}>
+              Fechar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       <Dialog open={modalAberto} onOpenChange={setModalAberto}>
-        <DialogContent className="sm:max-w-[600px]">
+        <DialogContent>
           <DialogHeader>
             <DialogTitle>
-              {processoEmEdicao ? 'Editar Processo Jurídico' : 'Cadastrar Novo Processo'}
+              {processoEmEdicao ? 'Editar Processo' : 'Novo Processo'}
             </DialogTitle>
+            <DialogDescription>
+              {processoEmEdicao 
+                ? 'Edite as informações do processo' 
+                : 'Preencha as informações para criar um novo processo'}
+            </DialogDescription>
           </DialogHeader>
-          <div className="grid gap-4 py-4">
+
+          <form onSubmit={handleSubmit} className="space-y-4">
             <Input
               label="Número do Processo *"
               value={processoEmEdicao?.numeroProcesso || ''}
@@ -432,21 +543,41 @@ export default function PaginaDeProcessos() {
                 responsavel: e.target.value 
               }))}
             />
-          </div>
-          <DialogFooter>
-            <Button 
-              variant="outline" 
-              onClick={() => setModalAberto(false)}
-            >
-              Cancelar
-            </Button>
-            <Button 
-              onClick={() => salvarProcesso(processoEmEdicao!)}
-              disabled={!processoEmEdicao?.numeroProcesso}
-            >
-              {processoEmEdicao ? 'Atualizar Processo' : 'Cadastrar Processo'}
-            </Button>
-          </DialogFooter>
+
+            <div className="space-y-2">
+              <Label>Documentos</Label>
+              <div className="flex items-center gap-2">
+                <Input
+                  type="file"
+                  multiple
+                  onChange={handleFileChange}
+                  className="flex-1"
+                />
+                <Button type="button" onClick={handleUpload}>
+                  <Upload className="w-4 h-4 mr-2" />
+                  Upload
+                </Button>
+              </div>
+              {documentos.length > 0 && (
+                <div className="mt-2 space-y-1">
+                  {documentos.map((doc, index) => (
+                    <div key={index} className="text-sm text-gray-500">
+                      {doc.name}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setModalAberto(false)}>
+                Cancelar
+              </Button>
+              <Button type="submit">
+                {processoEmEdicao ? 'Salvar Alterações' : 'Criar Processo'}
+              </Button>
+            </DialogFooter>
+          </form>
         </DialogContent>
       </Dialog>
     </main>

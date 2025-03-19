@@ -14,6 +14,7 @@ import { Button } from './ui/Button';
 import { Input } from './ui/Input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/Select';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from './ui/Tabs';
+import { SearchInput } from './ui/SearchInput';
 
 type Documento = {
   nome: string;
@@ -177,7 +178,7 @@ export function ReportsSection() {
           </SelectContent>
         </Select>
 
-        <Input
+        <SearchInput
           type="month"
           value={filtros.periodo}
           onChange={e => setFiltros(prev => ({ ...prev, periodo: e.target.value }))}
