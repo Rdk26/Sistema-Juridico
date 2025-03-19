@@ -199,6 +199,13 @@ export default function PaginaDeProcessos() {
     setDocumentos([]);
   };
 
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (processoEmEdicao) {
+      salvarProcesso(processoEmEdicao);
+    }
+  };
+
   return (
     <main className="flex-1 overflow-auto p-6">
       <div className="flex justify-between items-center mb-8">
@@ -449,7 +456,7 @@ export default function PaginaDeProcessos() {
                         <Download className="w-4 h-4" />
                         <span className="text-sm">{doc.nome}</span>
                       </div>
-                      <Button variant="ghost" size="sm">
+                      <Button variant="outline" size="sm">
                         <Download className="w-4 h-4" />
                       </Button>
                     </div>
