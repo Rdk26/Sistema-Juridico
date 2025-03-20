@@ -18,7 +18,10 @@ import {
   Download,
   Bell,
   CheckCircle,
-  Filter
+  Filter,
+  File,
+  ChevronDown,
+  ChevronUp
 } from 'lucide-react';
 import { Skeleton } from '../components/Skeleton';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '../components/ui/Dialog';
@@ -30,6 +33,8 @@ import { Button } from '../components/ui/Button';
 import { Textarea } from '../components/ui/Textarea';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '../components/ui/Tabs';
 import { SearchInput } from '../components/ui/SearchInput';
+import { Label } from '../components/ui/Label';
+import { toast } from 'react-hot-toast';
 
 type Notificacao = {
   id: number;
@@ -121,6 +126,11 @@ export default function NotificacoesPage() {
   const [abaAtiva, setAbaAtiva] = useState('dados');
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
   const [notificacaoSelecionada, setNotificacaoSelecionada] = useState<Notificacao | null>(null);
+  const [isDetalhesModalOpen, setIsDetalhesModalOpen] = useState(false);
+  const [ordenacao, setOrdenacao] = useState<{
+    campo: keyof Notificacao;
+    direcao: 'asc' | 'desc';
+  } | null>(null);
 
   const novaNotificacaoPadrao: Notificacao = {
     id: 0,
@@ -144,7 +154,12 @@ export default function NotificacoesPage() {
   }, []);
 
   const formatarData = (data: string) => {
-    return format(parseISO(data), "dd 'de' MMMM 'de' yyyy", { locale: pt });
+    if (!data) return 'Data não especificada';
+    try {
+      return format(parseISO(data), "dd 'de' MMMM 'de' yyyy", { locale: pt });
+    } catch (error) {
+      return 'Data inválida';
+    }
   };
 
   const notificacoesFiltradas = notificacoes.filter(notificacao => {
@@ -258,18 +273,43 @@ export default function NotificacoesPage() {
     console.log("Exportando relatório para Excel...");
   };
 
+  const ordenarNotificacoes = (campo: keyof Notificacao) => {
+    setOrdenacao(prev => ({
+      campo,
+      direcao: prev?.campo === campo && prev.direcao === 'asc' ? 'desc' : 'asc'
+    }));
+  };
+
+  const notificacoesOrdenadas = [...notificacoesFiltradas].sort((a, b) => {
+    if (!ordenacao) return 0;
+    
+    const aValue = a[ordenacao.campo];
+    const bValue = b[ordenacao.campo];
+    
+    if (typeof aValue === 'string' && typeof bValue === 'string') {
+      return ordenacao.direcao === 'asc' 
+        ? aValue.localeCompare(bValue)
+        : bValue.localeCompare(aValue);
+    }
+    
+    if (aValue instanceof Date && bValue instanceof Date) {
+      return ordenacao.direcao === 'asc'
+        ? aValue.getTime() - bValue.getTime()
+        : bValue.getTime() - aValue.getTime();
+    }
+    
+    return 0;
+  });
+
   return (
     <main className="flex-1 overflow-auto p-6">
       {/* Cabeçalho e Filtros */}
       <div className="mb-6 flex items-center justify-between">
         <h1 className="text-3xl font-bold texto-escuro">Notificações</h1>
-        <Button 
-          onClick={() => {
-            setNotificacaoEditando({ ...novaNotificacaoPadrao });
-            setIsModalOpen(true);
-            setErros({});
-          }}
-        >
+        <Button onClick={() => {
+          setNotificacaoEditando(novaNotificacaoPadrao);
+          setIsModalOpen(true);
+        }} className="btn-primary">
           <Plus className="w-4 h-4 mr-2" />
           Nova Notificação
         </Button>
@@ -324,10 +364,10 @@ export default function NotificacoesPage() {
         </Select>
 
         <Button 
-          onClick={exportarParaExcel} 
-          className="flex items-center justify-center gap-2"
+          onClick={exportarParaExcel}
+          className="btn-primary flex items-center gap-2"
         >
-          <Download className="w-5 h-5" />
+          <Download className="w-4 h-4" />
           Exportar Relatório
         </Button>
         <Input
@@ -347,7 +387,7 @@ export default function NotificacoesPage() {
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-          {notificacoesFiltradas.map(notificacao => (
+          {notificacoesOrdenadas.map(notificacao => (
             <div
               key={notificacao.id}
               className="card-juridico p-4 hover:shadow-lg transition-shadow relative"
@@ -605,11 +645,15 @@ export default function NotificacoesPage() {
           </div>
 
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsModalOpen(false)}>
+            <Button variant="outline" onClick={() => setIsModalOpen(false)} className="btn-outline">
               Cancelar
             </Button>
-            <Button onClick={handleSubmit}>
-              {notificacaoEditando?.id ? 'Atualizar Notificação' : 'Criar Notificação'}
+            <Button
+              onClick={handleSubmit}
+              disabled={!isFormularioValido}
+              className="btn-primary"
+            >
+              {notificacaoEditando?.id ? 'Salvar Alterações' : 'Criar Notificação'}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -617,78 +661,238 @@ export default function NotificacoesPage() {
 
       {/* Modal de Visualização */}
       <Dialog open={isViewModalOpen} onOpenChange={setIsViewModalOpen}>
-        <DialogContent className="sm:max-w-3xl">
+        <DialogContent className="sm:max-w-3xl p-4 md:p-6">
           <DialogHeader>
-            <div className="text-2xl font-bold texto-escuro">Detalhes da Notificação</div>
+            <DialogTitle>
+              <div className="text-xl font-bold mb-4">
+                Detalhes da Notificação: {notificacaoSelecionada?.numeroProcesso}
+              </div>
+            </DialogTitle>
           </DialogHeader>
-
+          
           {notificacaoSelecionada && (
-            <div className="grid grid-cols-2 gap-6">
-              <div className="space-y-4">
-                <div>
-                  <label className="font-medium texto-escuro">Número do Processo:</label>
-                  <p className="texto-escuro">{notificacaoSelecionada.numeroProcesso}</p>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
+              <div className="space-y-4 md:space-y-6">
+                <div className="card-juridico p-4">
+                  <h3 className="text-base font-semibold mb-3">Informações Principais</h3>
+                  <div className="space-y-3">
+                    <div className="flex justify-between items-center">
+                      <span className="font-medium text-gray-600">Número do Processo:</span>
+                      <span>{notificacaoSelecionada.numeroProcesso}</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="font-medium text-gray-600">Tipo:</span>
+                      <span>{notificacaoSelecionada.tipo}</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="font-medium text-gray-600">Tribunal:</span>
+                      <span>{notificacaoSelecionada.tribunal}</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="font-medium text-gray-600">Data da Notificação:</span>
+                      <span>{formatarData(notificacaoSelecionada.dataNotificacao)}</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="font-medium text-gray-600">Prazo:</span>
+                      <span className={isPrazoProximo(notificacaoSelecionada.prazo) ? 'text-red-500' : ''}>
+                        {formatarData(notificacaoSelecionada.prazo)}
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="font-medium text-gray-600">Status:</span>
+                      <span className={`px-2.5 py-0.5 rounded-full text-xs ${getStatusColor(notificacaoSelecionada.status)}`}>
+                        {notificacaoSelecionada.status}
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="font-medium text-gray-600">Prioridade:</span>
+                      <span className={`px-2.5 py-0.5 rounded-full text-xs ${getPrioridadeBadge(notificacaoSelecionada.prioridade)}`}>
+                        {notificacaoSelecionada.prioridade}
+                      </span>
+                    </div>
+                  </div>
                 </div>
-                <div>
-                  <label className="font-medium texto-escuro">Tipo:</label>
-                  <p className="texto-escuro">{notificacaoSelecionada.tipo}</p>
-                </div>
-                <div>
-                  <label className="font-medium texto-escuro">Tribunal:</label>
-                  <p className="texto-escuro">{notificacaoSelecionada.tribunal}</p>
-                </div>
-                <div>
-                  <label className="font-medium texto-escuro">Data da Notificação:</label>
-                  <p className="texto-escuro">{formatarData(notificacaoSelecionada.dataNotificacao)}</p>
-                </div>
-                <div>
-                  <label className="font-medium texto-escuro">Prazo:</label>
-                  <p className={`texto-escuro ${isPrazoProximo(notificacaoSelecionada.prazo) ? 'text-red-500' : ''}`}>
-                    {formatarData(notificacaoSelecionada.prazo)}
-                  </p>
-                </div>
-                <div>
-                  <label className="font-medium texto-escuro">Status:</label>
-                  <span className={`px-2.5 py-0.5 rounded-full text-xs ${getStatusColor(notificacaoSelecionada.status)}`}>
-                    {notificacaoSelecionada.status}
-                  </span>
-                </div>
-                <div>
-                  <label className="font-medium texto-escuro">Prioridade:</label>
-                  <span className={`px-2.5 py-0.5 rounded-full text-xs ${getPrioridadeBadge(notificacaoSelecionada.prioridade)}`}>
-                    {notificacaoSelecionada.prioridade}
-                  </span>
+
+                <div className="card-juridico p-4">
+                  <h3 className="text-base font-semibold mb-3">Descrição</h3>
+                  <p className="text-gray-600">{notificacaoSelecionada.descricao}</p>
                 </div>
               </div>
 
-              <div>
-                <div>
-                  <label className="font-medium texto-escuro">Partes Envolvidas:</label>
-                  <div className="mt-2 space-y-2">
+              <div className="space-y-4 md:space-y-6">
+                <div className="card-juridico p-4">
+                  <h3 className="text-base font-semibold mb-3">Partes Envolvidas</h3>
+                  <div className="space-y-2">
                     {notificacaoSelecionada.partesEnvolvidas.map((parte, index) => (
-                      <div key={index} className="flex items-center gap-2">
-                        <User className="w-4 h-4 text-gray-400" />
-                        <span className="texto-escuro">{parte}</span>
+                      <div key={index} className="flex items-center gap-2 p-2 border rounded">
+                        <User className="w-4 h-4 text-gray-500" />
+                        <span>{parte}</span>
                       </div>
                     ))}
                   </div>
                 </div>
 
-                <div className="mt-4">
-                  <label className="font-medium texto-escuro">Descrição:</label>
-                  <p className="texto-escuro mt-2">{notificacaoSelecionada.descricao}</p>
-                </div>
-
-                {notificacaoSelecionada.anexos.length > 0 && (
-                  <div className="mt-4">
-                    <label className="font-medium texto-escuro">Anexos:</label>
-                    <div className="mt-2 space-y-2">
+                <div className="card-juridico p-4">
+                  <h3 className="text-base font-semibold mb-3">Anexos</h3>
+                  {notificacaoSelecionada.anexos && notificacaoSelecionada.anexos.length > 0 ? (
+                    <div className="space-y-2">
                       {notificacaoSelecionada.anexos.map((anexo, index) => (
                         <div key={index} className="flex items-center justify-between p-2 border rounded">
                           <div className="flex items-center gap-2">
-                            <FileText className="w-4 h-4" />
-                            <span className="texto-escuro">{anexo.nome}</span>
+                            <File className="w-4 h-4 text-gray-500" />
+                            <div>
+                              <div className="text-sm font-medium">{anexo.nome}</div>
+                            </div>
                           </div>
+                          <div className="flex gap-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => {
+                                if (anexo.nome.toLowerCase().endsWith('.pdf')) {
+                                  window.open(anexo.url, '_blank');
+                                } else {
+                                  alert('Este tipo de arquivo não pode ser visualizado diretamente');
+                                }
+                              }}
+                            >
+                              <Eye className="w-4 h-4" />
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleDownloadDocumento(anexo)}
+                            >
+                              <Download className="w-4 h-4" />
+                            </Button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="p-3 border rounded-lg text-center text-gray-500">
+                      Não há anexos associados a esta notificação
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+          
+          <DialogFooter>
+            <div className="mt-6">
+              <Button variant="outline" onClick={() => setIsViewModalOpen(false)}>
+                Fechar
+              </Button>
+            </div>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal de Detalhes */}
+      <Dialog open={isDetalhesModalOpen} onOpenChange={setIsDetalhesModalOpen}>
+        <DialogContent className="sm:max-w-[800px] p-4 md:p-6">
+          <DialogHeader>
+            <DialogTitle>
+              <div className="text-xl font-bold mb-4">
+                Detalhes da Notificação: {notificacaoSelecionada?.numeroProcesso}
+              </div>
+            </DialogTitle>
+          </DialogHeader>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
+            <div className="space-y-4 md:space-y-6">
+              <div className="card-juridico p-4">
+                <h3 className="text-base font-semibold mb-3">Informações Principais</h3>
+                <div className="space-y-3">
+                  <div className="flex justify-between items-center">
+                    <span className="font-medium text-gray-600">Número do Processo:</span>
+                    <span>{notificacaoSelecionada?.numeroProcesso}</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="font-medium text-gray-600">Tipo:</span>
+                    <span className={`px-2.5 py-0.5 rounded-full text-xs ${getStatusColor(notificacaoSelecionada?.tipo || 'notificação')}`}>
+                      {notificacaoSelecionada?.tipo.toUpperCase()}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="font-medium text-gray-600">Status:</span>
+                    <span className={`px-2.5 py-0.5 rounded-full text-xs ${getStatusColor(notificacaoSelecionada?.status || 'pendente')}`}>
+                      {notificacaoSelecionada?.status.toUpperCase()}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="font-medium text-gray-600">Prioridade:</span>
+                    <span className={`px-2.5 py-0.5 rounded-full text-xs ${getPrioridadeBadge(notificacaoSelecionada?.prioridade || 'baixa')}`}>
+                      {notificacaoSelecionada?.prioridade.toUpperCase()}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="font-medium text-gray-600">Data de Notificação:</span>
+                    <span>
+                      {notificacaoSelecionada?.dataNotificacao 
+                        ? new Date(notificacaoSelecionada.dataNotificacao).toLocaleDateString('pt-MZ') 
+                        : ''}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="font-medium text-gray-600">Prazo:</span>
+                    <span className={`${isPrazoProximo(notificacaoSelecionada?.prazo || '') ? 'text-red-500' : ''}`}>
+                      {formatarData(notificacaoSelecionada?.prazo || '')}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="font-medium text-gray-600">Tribunal:</span>
+                    <span>{notificacaoSelecionada?.tribunal}</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="card-juridico p-4">
+                <h3 className="text-base font-semibold mb-3">Partes Envolvidas</h3>
+                <div className="space-y-2">
+                  {notificacaoSelecionada?.partesEnvolvidas.map((parte, index) => (
+                    <div key={index} className="flex items-center gap-2">
+                      <User className="w-4 h-4 text-gray-500" />
+                      <span className="text-gray-600">{parte}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-4 md:space-y-6">
+              <div className="card-juridico p-4">
+                <h3 className="text-base font-semibold mb-3">Descrição</h3>
+                <p className="text-gray-600">{notificacaoSelecionada?.descricao}</p>
+              </div>
+
+              {notificacaoSelecionada?.anexos && notificacaoSelecionada.anexos.length > 0 && (
+                <div className="card-juridico p-4">
+                  <h3 className="text-base font-semibold mb-3">Anexos</h3>
+                  <div className="space-y-2">
+                    {notificacaoSelecionada.anexos.map((anexo, index) => (
+                      <div key={index} className="flex items-center justify-between p-2 border rounded">
+                        <div className="flex items-center gap-2">
+                          <File className="w-4 h-4 text-gray-500" />
+                          <div>
+                            <div className="text-sm font-medium">{anexo.nome}</div>
+                          </div>
+                        </div>
+                        <div className="flex gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              if (anexo.nome.toLowerCase().endsWith('.pdf')) {
+                                window.open(anexo.url, '_blank');
+                              } else {
+                                alert('Este tipo de arquivo não pode ser visualizado diretamente');
+                              }
+                            }}
+                          >
+                            <Eye className="w-4 h-4" />
+                          </Button>
                           <Button
                             variant="outline"
                             size="sm"
@@ -697,13 +901,21 @@ export default function NotificacoesPage() {
                             <Download className="w-4 h-4" />
                           </Button>
                         </div>
-                      ))}
-                    </div>
+                      </div>
+                    ))}
                   </div>
-                )}
-              </div>
+                </div>
+              )}
             </div>
-          )}
+          </div>
+          
+          <DialogFooter>
+            <div className="mt-6">
+              <Button variant="outline" onClick={() => setIsDetalhesModalOpen(false)}>
+                Fechar
+              </Button>
+            </div>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </main>

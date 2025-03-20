@@ -142,16 +142,16 @@ export function ReportsSection() {
   };
 
   return (
-    <div className="card-juridico">
+    <div className="card-juridico relative z-0">
       <div className="flex items-center justify-between mb-6">
         <h2 className="texto-escuro text-xl font-semibold">Relatórios</h2>
-        <Button onClick={handleCriarRelatorio}>
+        <Button onClick={handleCriarRelatorio} className="btn-primary">
           <Plus className="w-4 h-4 mr-2" />
           Novo Relatório
         </Button>
       </div>
 
-      <div className="grid grid-cols-3 gap-4 mb-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6 relative z-0">
         <Select value={filtros.tipo} onValueChange={v => setFiltros(prev => ({ ...prev, tipo: v }))}>
           <SelectTrigger>
             <SelectValue placeholder="Todos os Tipos" />
@@ -186,66 +186,71 @@ export function ReportsSection() {
         />
       </div>
 
-      <table className="tabela-juridica w-full">
-        <thead>
-          <tr>
-            <th>Tipo</th>
-            <th>Período</th>
-            <th>Categoria</th>
-            <th>Situação</th>
-            <th>Ações</th>
-          </tr>
-        </thead>
-        <tbody>
-          {relatoriosFiltrados.map(relatorio => (
-            <tr key={relatorio.id}>
-              <td>{relatorio.tipo}</td>
-              <td>{relatorio.periodo}</td>
-              <td>{relatorio.categoria}</td>
-              <td>
-                <span className={`px-2.5 py-0.5 rounded-full text-xs ${getSituacaoColor(relatorio.situacao)}`}>
-                  {relatorio.situacao}
-                </span>
-              </td>
-              <td>
-                <div className="flex gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {
-                      setRelatorioSelecionado(relatorio);
-                      setIsViewModalOpen(true);
-                    }}
-                  >
-                    <Eye className="w-4 h-4" />
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {
-                      setRelatorioSelecionado(relatorio);
-                      setIsEditModalOpen(true);
-                    }}
-                  >
-                    <Edit className="w-4 h-4" />
-                  </Button>
-                  <Button
-                    variant="destructive"
-                    size="sm"
-                    onClick={() => handleExcluirRelatorio(relatorio.id)}
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
-                </div>
-              </td>
+      <div className="overflow-x-auto">
+        <table className="tabela-juridica w-full">
+          <thead>
+            <tr>
+              <th>Tipo</th>
+              <th>Período</th>
+              <th>Categoria</th>
+              <th>Situação</th>
+              <th>Ações</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {relatoriosFiltrados.map(relatorio => (
+              <tr key={relatorio.id}>
+                <td className="font-medium">{relatorio.tipo}</td>
+                <td>{relatorio.periodo}</td>
+                <td>{relatorio.categoria}</td>
+                <td>
+                  <span className={`px-2.5 py-0.5 rounded-full text-xs ${getSituacaoColor(relatorio.situacao)}`}>
+                    {relatorio.situacao}
+                  </span>
+                </td>
+                <td>
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        setRelatorioSelecionado(relatorio);
+                        setIsViewModalOpen(true);
+                      }}
+                      className="btn-outline"
+                    >
+                      <Eye className="w-4 h-4" />
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        setRelatorioSelecionado(relatorio);
+                        setIsEditModalOpen(true);
+                      }}
+                      className="btn-outline"
+                    >
+                      <Edit className="w-4 h-4" />
+                    </Button>
+                    <Button 
+                      variant="destructive" 
+                      size="sm"
+                      onClick={() => handleExcluirRelatorio(relatorio.id)}
+                      className="btn-destructive"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
 
       {/* Modal de Visualização */}
       <Dialog open={isViewModalOpen} onOpenChange={setIsViewModalOpen}>
-        <DialogContent className="sm:max-w-3xl">
+        <DialogContent className="sm:max-w-3xl z-[100]">
           <DialogHeader>
             <DialogTitle>Detalhes do Relatório</DialogTitle>
           </DialogHeader>
@@ -307,7 +312,7 @@ export function ReportsSection() {
 
       {/* Modal de Edição/Criação */}
       <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
-        <DialogContent className="sm:max-w-2xl">
+        <DialogContent className="sm:max-w-2xl z-[100]">
           <DialogHeader>
             <DialogTitle>
               {relatorioSelecionado?.id ? 'Editar Relatório' : 'Novo Relatório'}

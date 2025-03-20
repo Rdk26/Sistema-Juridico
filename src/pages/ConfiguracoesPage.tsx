@@ -178,12 +178,13 @@ export default function ConfiguracoesPage() {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsDeleteModalOpen(false)}>
+            <Button variant="outline" onClick={() => setIsDeleteModalOpen(false)} className="btn-outline">
               Cancelar
             </Button>
             <Button 
               variant="destructive" 
               onClick={handleDeleteAccount}
+              className="btn-destructive"
             >
               Confirmar Exclusão
             </Button>
@@ -361,6 +362,7 @@ export default function ConfiguracoesPage() {
               <Button
                 variant={theme === 'light' ? 'default' : 'outline'}
                 onClick={() => toggleTheme('light')}
+                className={theme === 'light' ? 'btn-primary' : 'btn-outline'}
               >
                 <Sun className="w-4 h-4 mr-2" />
                 Tema Claro
@@ -403,6 +405,7 @@ export default function ConfiguracoesPage() {
                 <Button 
                   variant="destructive"
                   onClick={() => setIsDeleteModalOpen(true)}
+                  className="btn-destructive"
                 >
                   Excluir Conta Permanentemente
                 </Button>
@@ -412,10 +415,10 @@ export default function ConfiguracoesPage() {
         </div>
 
         <div className="flex justify-end gap-4 mt-8">
-          <Button type="button" variant="outline">
+          <Button type="button" variant="outline" className="btn-outline">
             Cancelar
           </Button>
-          <Button type="submit" disabled={isSaving}>
+          <Button type="submit" disabled={isSaving} className="btn-primary">
             {isSaving ? (
               <div className="flex items-center">
                 <Loader className="w-4 h-4 mr-2 animate-spin" />

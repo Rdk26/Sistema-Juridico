@@ -273,7 +273,7 @@ export default function PessoalInternoPage() {
             nif: ''
           });
           setIsModalOpen(true);
-        }}>
+        }} className="btn-primary">
           <Plus className="w-4 h-4 mr-2" />
           Novo Funcionário
         </Button>
@@ -328,10 +328,10 @@ export default function PessoalInternoPage() {
         </Select>
 
         <Button 
-          onClick={exportarParaExcel} 
-          className="flex items-center justify-center gap-2"
+          onClick={exportarParaExcel}
+          className="btn-primary flex items-center gap-2"
         >
-          <Download className="w-5 h-5" />
+          <Download className="w-4 h-4" />
           Exportar Relatório
         </Button>
       </div>
@@ -390,6 +390,7 @@ export default function PessoalInternoPage() {
         <Button 
           variant={visualizacao === 'tabela' ? 'default' : 'outline'} 
           onClick={() => setVisualizacao('tabela')}
+          className={visualizacao === 'tabela' ? 'btn-view' : 'btn-view-outline'}
         >
           <Table className="w-4 h-4 mr-2" />
           Visualização em Tabela
@@ -397,6 +398,7 @@ export default function PessoalInternoPage() {
         <Button 
           variant={visualizacao === 'cards' ? 'default' : 'outline'} 
           onClick={() => setVisualizacao('cards')}
+          className={visualizacao === 'cards' ? 'btn-view' : 'btn-view-outline'}
         >
           <LayoutGrid className="w-4 h-4 mr-2" />
           Visualização em Cards
@@ -448,6 +450,7 @@ export default function PessoalInternoPage() {
                       setFuncionarioEditando(funcionario); 
                       setIsModalOpen(true); 
                     }}
+                    className="btn-outline"
                   >
                     <Edit className="w-4 h-4" />
                   </Button>
@@ -458,6 +461,7 @@ export default function PessoalInternoPage() {
                       setClienteVisualizando(funcionario);
                       setIsViewModalOpen(true);
                     }}
+                    className="btn-outline"
                   >
                     <Eye className="w-4 h-4" />
                   </Button>
@@ -465,6 +469,7 @@ export default function PessoalInternoPage() {
                     variant="destructive" 
                     size="sm"
                     onClick={() => excluirFuncionario(funcionario.id)}
+                    className="btn-destructive"
                   >
                     <Trash2 className="w-4 h-4" />
                   </Button>
@@ -511,6 +516,7 @@ export default function PessoalInternoPage() {
                         setFuncionarioEditando(funcionario); 
                         setIsModalOpen(true); 
                       }}
+                      className="btn-outline"
                     >
                       <Edit className="w-4 h-4" />
                     </Button>
@@ -521,6 +527,7 @@ export default function PessoalInternoPage() {
                         setClienteVisualizando(funcionario);
                         setIsViewModalOpen(true);
                       }}
+                      className="btn-outline"
                     >
                       <Eye className="w-4 h-4" />
                     </Button>
@@ -528,6 +535,7 @@ export default function PessoalInternoPage() {
                       variant="destructive" 
                       size="sm"
                       onClick={() => excluirFuncionario(funcionario.id)}
+                      className="btn-destructive"
                     >
                       <Trash2 className="w-4 h-4" />
                     </Button>
@@ -960,13 +968,13 @@ export default function PessoalInternoPage() {
           </Tabs>
 
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsModalOpen(false)}>
+            <Button variant="outline" onClick={() => setIsModalOpen(false)} className="btn-outline">
               Cancelar
             </Button>
             <Button
               onClick={() => handleSubmeter(funcionarioEditando)}
               disabled={!formularioValido}
-              className="relative"
+              className="btn-primary"
             >
               {funcionarioEditando.id === 0 ? 'Criar Funcionário' : 'Salvar Alterações'}
               {!formularioValido && (

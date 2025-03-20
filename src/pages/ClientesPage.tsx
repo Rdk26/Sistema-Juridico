@@ -342,7 +342,7 @@ export default function ClientesPage() {
             historicoServicos: []
           });
           setModalAberto(true);
-        }}>
+        }} className="btn-primary">
           <Plus className="w-4 h-4 mr-2" />
           Novo Cliente
         </Button>
@@ -397,7 +397,7 @@ export default function ClientesPage() {
 
         <Button 
           onClick={exportarParaExcel} 
-          className="flex items-center justify-center gap-2"
+          className="btn-primary flex items-center justify-center gap-2"
         >
           <Download className="w-5 h-5" />
           Exportar Relatório
@@ -452,16 +452,18 @@ export default function ClientesPage() {
       ) : (
         <>
           <div className="mb-4 flex gap-2">
-            <Button
-              variant={visualizacao === 'tabela' ? 'default' : 'outline'}
+            <Button 
+              variant={visualizacao === 'tabela' ? 'default' : 'outline'} 
               onClick={() => setVisualizacao('tabela')}
+              className={visualizacao === 'tabela' ? 'btn-view' : 'btn-view-outline'}
             >
               <Table className="w-4 h-4 mr-2" />
               Visualização em Tabela
             </Button>
-            <Button
-              variant={visualizacao === 'cards' ? 'default' : 'outline'}
+            <Button 
+              variant={visualizacao === 'cards' ? 'default' : 'outline'} 
               onClick={() => setVisualizacao('cards')}
+              className={visualizacao === 'cards' ? 'btn-view' : 'btn-view-outline'}
             >
               <LayoutGrid className="w-4 h-4 mr-2" />
               Visualização em Cards
@@ -491,6 +493,7 @@ export default function ClientesPage() {
                         variant="outline"
                         size="sm"
                         onClick={() => abrirModalEdicao(cliente)}
+                        className="btn-outline"
                       >
                         <Edit className="w-4 h-4" />
                       </Button>
@@ -498,6 +501,7 @@ export default function ClientesPage() {
                         variant="outline"
                         size="sm"
                         onClick={() => handleVisualizarDetalhes(cliente)}
+                        className="btn-outline"
                       >
                         <Eye className="w-4 h-4" />
                       </Button>
@@ -505,6 +509,7 @@ export default function ClientesPage() {
                         variant="destructive"
                         size="sm"
                         onClick={() => manipularExclusao(cliente.id)}
+                        className="btn-destructive"
                       >
                         <Trash2 className="w-4 h-4" />
                       </Button>
@@ -566,6 +571,7 @@ export default function ClientesPage() {
                           variant="outline"
                           size="sm"
                           onClick={() => abrirModalEdicao(cliente)}
+                          className="btn-outline"
                         >
                           <Edit className="w-4 h-4" />
                         </Button>
@@ -573,6 +579,7 @@ export default function ClientesPage() {
                           variant="outline"
                           size="sm"
                           onClick={() => handleVisualizarDetalhes(cliente)}
+                          className="btn-outline"
                         >
                           <Eye className="w-4 h-4" />
                         </Button>
@@ -580,6 +587,7 @@ export default function ClientesPage() {
                           variant="destructive"
                           size="sm"
                           onClick={() => manipularExclusao(cliente.id)}
+                          className="btn-destructive"
                         >
                           <Trash2 className="w-4 h-4" />
                         </Button>
@@ -595,7 +603,7 @@ export default function ClientesPage() {
 
       {/* Modal de Detalhes */}
       <Dialog open={isDetalhesModalOpen} onOpenChange={setIsDetalhesModalOpen}>
-        <DialogContent className="sm:max-w-[800px] p-6">
+        <DialogContent className="sm:max-w-[800px] p-4 md:p-6">
           <DialogHeader>
             <DialogTitle>
               <div className="text-xl font-bold mb-4">
@@ -604,21 +612,19 @@ export default function ClientesPage() {
             </DialogTitle>
           </DialogHeader>
           
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="space-y-6">
-              <div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
+            <div className="space-y-4 md:space-y-6">
+              <div className="card-juridico p-4">
                 <h3 className="text-base font-semibold mb-3">Informações Principais</h3>
-                <div className="space-y-3 p-3 border rounded-lg">
+                <div className="space-y-3">
                   <div className="flex justify-between items-center">
                     <span className="font-medium text-gray-600">Nome:</span>
                     <span>{clienteVisualizando?.nome}</span>
                   </div>
                   <div className="flex justify-between items-center">
                     <span className="font-medium text-gray-600">Tipo:</span>
-                    <span>
-                      {clienteVisualizando?.tipo === 'PessoaColetiva' 
-                        ? 'Pessoa Coletiva' 
-                        : 'Pessoa Singular'}
+                    <span className={`px-2.5 py-0.5 rounded-full text-xs ${obterCorStatus(clienteVisualizando?.status || 'ativo')}`}>
+                      {clienteVisualizando?.status === 'ativo' ? 'Ativo' : clienteVisualizando?.status === 'inativo' ? 'Inativo' : 'Potencial'}
                     </span>
                   </div>
                   <div className="flex justify-between items-center">
@@ -656,7 +662,7 @@ export default function ClientesPage() {
                 </div>
               </div>
 
-              <div>
+              <div className="card-juridico p-4">
                 <h3 className="text-base font-semibold mb-3">Documentos</h3>
                 {clienteVisualizando?.documentos && clienteVisualizando.documentos.length > 0 ? (
                   <div className="space-y-2">
@@ -671,13 +677,28 @@ export default function ClientesPage() {
                             </div>
                           </div>
                         </div>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleDownloadDocumento(documento)}
-                        >
-                          <Download className="w-4 h-4" />
-                        </Button>
+                        <div className="flex gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              if (documento.nome.toLowerCase().endsWith('.pdf')) {
+                                window.open(documento.url, '_blank');
+                              } else {
+                                alert('Este tipo de arquivo não pode ser visualizado diretamente');
+                              }
+                            }}
+                          >
+                            <Eye className="w-4 h-4" />
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleDownloadDocumento(documento)}
+                          >
+                            <Download className="w-4 h-4" />
+                          </Button>
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -689,8 +710,8 @@ export default function ClientesPage() {
               </div>
             </div>
 
-            <div className="space-y-6">
-              <div>
+            <div className="space-y-4 md:space-y-6">
+              <div className="card-juridico p-4">
                 <h3 className="text-base font-semibold mb-3">Histórico de Interacções</h3>
                 {clienteVisualizando?.historicoInteracoes && clienteVisualizando.historicoInteracoes.length > 0 ? (
                   <div className="space-y-3">
@@ -712,7 +733,7 @@ export default function ClientesPage() {
                 )}
               </div>
 
-              <div>
+              <div className="card-juridico p-4">
                 <h3 className="text-base font-semibold mb-3">Histórico de Serviços</h3>
                 {clienteVisualizando?.historicoServicos && clienteVisualizando.historicoServicos.length > 0 ? (
                   <div className="space-y-3">
@@ -811,22 +832,22 @@ export default function ClientesPage() {
                   </Select>
 
                   <Input
-  label="Número de Identificação Fiscal *"
-  value={clienteEditando?.numeroIdentificacaoFiscal || ''}
-  onChange={(evento) => {
-    const valor = evento.target.value
-      .replace(/\D/g, '') // Remove todos os caracteres não numéricos
-      .replace(/(\d{3})(\d{3})(\d{3})/, '$1 $2 $3') // Formata com espaços
-      .trim()
-      .slice(0, 11); // Limita para 9 dígitos (com espaços)
+                    label="Número de Identificação Fiscal *"
+                    value={clienteEditando?.numeroIdentificacaoFiscal || ''}
+                    onChange={(evento) => {
+                      const valor = evento.target.value
+                        .replace(/\D/g, '') // Remove todos os caracteres não numéricos
+                        .replace(/(\d{3})(\d{3})(\d{3})/, '$1 $2 $3') // Formata com espaços
+                        .trim()
+                        .slice(0, 11); // Limita para 9 dígitos (com espaços)
 
-    setClienteEditando(anterior => ({
-      ...anterior!,
-      numeroIdentificacaoFiscal: valor
-    }));
-  }}
-  placeholder="Ex: 123 456 789"
-/>
+                      setClienteEditando(anterior => ({
+                        ...anterior!,
+                        numeroIdentificacaoFiscal: valor
+                      }));
+                    }}
+                    placeholder="Ex: 123 456 789"
+                  />
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
@@ -1023,7 +1044,7 @@ export default function ClientesPage() {
 
                 <Button
                   onClick={handleAdicionarServico}
-                  className="mt-4"
+                  className="mt-4 btn-primary"
                 >
                   Adicionar Novo Serviço
                 </Button>
@@ -1032,7 +1053,7 @@ export default function ClientesPage() {
           </Tabs>
 
           <DialogFooter>
-            <Button variant="outline" onClick={() => setModalAberto(false)}>
+            <Button variant="outline" onClick={() => setModalAberto(false)} className="btn-outline">
               Cancelar
             </Button>
             <Button
@@ -1044,6 +1065,7 @@ export default function ClientesPage() {
                 !clienteEditando.contacto ||
                 !clienteEditando.email
               }
+              className="btn-primary"
             >
               {clienteEditando?.id ? 'Salvar Alterações' : 'Criar Novo Cliente'}
             </Button>
@@ -1051,6 +1073,7 @@ export default function ClientesPage() {
               <Button
                 variant="destructive"
                 onClick={() => manipularExclusao(clienteEditando.id)}
+                className="btn-destructive"
               >
                 Excluir
               </Button>

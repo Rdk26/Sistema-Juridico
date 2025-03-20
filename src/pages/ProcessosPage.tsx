@@ -11,7 +11,9 @@ import {
   ChevronUp, 
   ChevronDown,
   Eye,
-  Upload
+  Upload,
+  FileText,
+  File
 } from 'lucide-react';
 import { Skeleton } from '../components/Skeleton';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '../components/ui/Dialog';
@@ -77,6 +79,8 @@ export default function PaginaDeProcessos() {
   const [processoEmEdicao, setProcessoEmEdicao] = useState<Processo | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [documentos, setDocumentos] = useState<File[]>([]);
+  const [isDetalhesModalOpen, setIsDetalhesModalOpen] = useState(false);
+  const [processoSelecionado, setProcessoSelecionado] = useState<Processo | null>(null);
 
   useEffect(() => {
     setTimeout(() => {
@@ -206,11 +210,23 @@ export default function PaginaDeProcessos() {
     }
   };
 
+  const getStatusStyle = (status: string) => {
+    switch (status) {
+      case 'ativo': return 'bg-blue-100 text-blue-800';
+      case 'arquivado': return 'bg-gray-100 text-gray-800';
+      case 'concluido': return 'bg-green-100 text-green-800';
+      default: return '';
+    }
+  };
+
   return (
     <main className="flex-1 overflow-auto p-6">
       <div className="flex justify-between items-center mb-8">
         <h1 className="text-3xl font-bold texto-escuro">Gestão de Processos Jurídicos</h1>
-        <Button onClick={() => { setProcessoEmEdicao(null); setModalAberto(true); }}>
+        <Button 
+          onClick={() => { setProcessoEmEdicao(null); setModalAberto(true); }}
+          className="btn-primary"
+        >
           <Plus className="w-4 h-4 mr-2" />
           Novo Processo
         </Button>
@@ -257,10 +273,10 @@ export default function PaginaDeProcessos() {
         />
 
         <Button 
-          onClick={exportarParaExcel} 
-          className="flex items-center justify-center gap-2"
+          onClick={exportarParaExcel}
+          className="btn-primary"
         >
-          <Download className="w-5 h-5" />
+          <Download className="w-4 h-4" />
           Exportar Relatório
         </Button>
       </div>
@@ -344,23 +360,25 @@ export default function PaginaDeProcessos() {
                   <td>{processo.responsavel}</td>
                   <td>
                     <div className="flex gap-2">
-                      <Button 
-                        variant="outline" 
+                      <Button
+                        variant="outline"
                         size="sm"
                         onClick={() => {
-                          setProcessoEmEdicao(processo);
-                          setIsModalOpen(true);
+                          setProcessoSelecionado(processo);
+                          setIsDetalhesModalOpen(true);
                         }}
+                        className="btn-outline"
                       >
                         <Eye className="w-4 h-4" />
                       </Button>
-                      <Button 
-                        variant="outline" 
+                      <Button
+                        variant="outline"
                         size="sm"
-                        onClick={() => { 
-                          setProcessoEmEdicao(processo); 
-                          setModalAberto(true); 
+                        onClick={() => {
+                          setProcessoEmEdicao(processo);
+                          setModalAberto(true);
                         }}
+                        className="btn-outline"
                       >
                         <Edit className="w-4 h-4" />
                       </Button>
@@ -368,6 +386,7 @@ export default function PaginaDeProcessos() {
                         variant="destructive" 
                         size="sm"
                         onClick={() => excluirProcesso(processo.identificador)}
+                        className="btn-destructive"
                       >
                         <Trash2 className="w-4 h-4" />
                       </Button>
@@ -403,79 +422,134 @@ export default function PaginaDeProcessos() {
         </div>
       )}
 
-      {/* Modal de Edição/Criação */}
-      <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-        <DialogContent className="max-w-3xl">
+      {/* Modal de Detalhes */}
+      <Dialog open={isDetalhesModalOpen} onOpenChange={setIsDetalhesModalOpen}>
+        <DialogContent className="sm:max-w-[800px] p-4 md:p-6">
           <DialogHeader>
-            <DialogTitle>Detalhes do Processo</DialogTitle>
-            <DialogDescription>
-              Visualize os detalhes e documentos do processo
-            </DialogDescription>
+            <DialogTitle>
+              <div className="text-xl font-bold mb-4">
+                Detalhes do Processo: {processoSelecionado?.numeroProcesso}
+              </div>
+            </DialogTitle>
           </DialogHeader>
-
-          {processoEmEdicao && (
-            <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label>Número do Processo</Label>
-                  <p className="text-sm text-gray-500">{processoEmEdicao.numeroProcesso}</p>
-                </div>
-                <div>
-                  <Label>Cliente</Label>
-                  <p className="text-sm text-gray-500">{processoEmEdicao.cliente}</p>
-                </div>
-                <div>
-                  <Label>Status</Label>
-                  <p className="text-sm text-gray-500">{processoEmEdicao.status}</p>
-                </div>
-                <div>
-                  <Label>Responsável</Label>
-                  <p className="text-sm text-gray-500">{processoEmEdicao.responsavel}</p>
-                </div>
-                <div>
-                  <Label>Data de Início</Label>
-                  <p className="text-sm text-gray-500">{processoEmEdicao.dataInicio}</p>
-                </div>
-                <div>
-                  <Label>Prazo Final</Label>
-                  <p className="text-sm text-gray-500">{processoEmEdicao.prazoFinal}</p>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
+            <div className="space-y-4 md:space-y-6">
+              <div className="card-juridico p-4">
+                <h3 className="text-base font-semibold mb-3">Informações Principais</h3>
+                <div className="space-y-3">
+                  <div className="flex justify-between items-center">
+                    <span className="font-medium text-gray-600">Número do Processo:</span>
+                    <span>{processoSelecionado?.numeroProcesso}</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="font-medium text-gray-600">Cliente:</span>
+                    <span>{processoSelecionado?.cliente}</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="font-medium text-gray-600">Status:</span>
+                    <span className={`px-2.5 py-0.5 rounded-full text-xs ${getStatusStyle(processoSelecionado?.status || 'ativo')}`}>
+                      {processoSelecionado?.status.toUpperCase()}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="font-medium text-gray-600">Responsável:</span>
+                    <span>{processoSelecionado?.responsavel}</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="font-medium text-gray-600">Data de Início:</span>
+                    <span>
+                      {processoSelecionado?.dataInicio 
+                        ? new Date(processoSelecionado.dataInicio).toLocaleDateString('pt-MZ') 
+                        : ''}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="font-medium text-gray-600">Prazo Final:</span>
+                    <span>
+                      {processoSelecionado?.prazoFinal 
+                        ? new Date(processoSelecionado.prazoFinal).toLocaleDateString('pt-MZ') 
+                        : ''}
+                    </span>
+                  </div>
                 </div>
               </div>
 
-              <div>
-                <Label>Descrição</Label>
-                <p className="text-sm text-gray-500">{processoEmEdicao.descricao}</p>
-              </div>
-
-              <div>
-                <Label>Documentos</Label>
-                <div className="mt-2 space-y-2">
-                  {processoEmEdicao.documentos.map((doc, index) => (
-                    <div key={index} className="flex items-center justify-between p-2 border rounded">
-                      <div className="flex items-center gap-2">
-                        <Download className="w-4 h-4" />
-                        <span className="text-sm">{doc.nome}</span>
-                      </div>
-                      <Button variant="outline" size="sm">
-                        <Download className="w-4 h-4" />
-                      </Button>
-                    </div>
-                  ))}
-                </div>
+              <div className="card-juridico p-4">
+                <h3 className="text-base font-semibold mb-3">Descrição</h3>
+                <p className="text-gray-600">{processoSelecionado?.descricao}</p>
               </div>
             </div>
-          )}
 
+            <div className="space-y-4 md:space-y-6">
+              <div className="card-juridico p-4">
+                <h3 className="text-base font-semibold mb-3">Documentos</h3>
+                {processoSelecionado?.documentos && processoSelecionado.documentos.length > 0 ? (
+                  <div className="space-y-2">
+                    {processoSelecionado.documentos.map((documento) => (
+                      <div key={documento.nome} className="flex items-center justify-between p-2 border rounded">
+                        <div className="flex items-center gap-2">
+                          <File className="w-4 h-4 text-gray-500" />
+                          <div>
+                            <div className="text-sm font-medium">{documento.nome}</div>
+                            <div className="text-xs text-gray-500">
+                              {new Date(documento.dataUpload).toLocaleDateString('pt-MZ')}
+                            </div>
+                          </div>
+                        </div>
+                        <div className="flex gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              if (documento.nome.toLowerCase().endsWith('.pdf')) {
+                                window.open(documento.url, '_blank');
+                              } else {
+                                alert('Este tipo de arquivo não pode ser visualizado diretamente');
+                              }
+                            }}
+                          >
+                            <Eye className="w-4 h-4" />
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              const link = document.createElement('a');
+                              link.href = documento.url;
+                              link.download = documento.nome;
+                              document.body.appendChild(link);
+                              link.click();
+                              document.body.removeChild(link);
+                            }}
+                          >
+                            <Download className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="p-3 border rounded-lg text-center text-gray-500">
+                    Não há documentos associados a este processo
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+          
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsModalOpen(false)}>
-              Fechar
-            </Button>
+            <div className="mt-6">
+              <Button variant="outline" onClick={() => setIsDetalhesModalOpen(false)}>
+                Fechar
+              </Button>
+            </div>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
       <Dialog open={modalAberto} onOpenChange={setModalAberto}>
-        <DialogContent>
+        <DialogContent className="sm:max-w-[800px] p-6">
           <DialogHeader>
             <DialogTitle>
               {processoEmEdicao ? 'Editar Processo' : 'Novo Processo'}
@@ -487,71 +561,87 @@ export default function PaginaDeProcessos() {
             </DialogDescription>
           </DialogHeader>
 
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <Input
-              label="Número do Processo *"
-              value={processoEmEdicao?.numeroProcesso || ''}
-              onChange={e => setProcessoEmEdicao(prev => ({ 
-                ...prev!, 
-                numeroProcesso: e.target.value 
-              }))}
-            />
-            
-            <Input
-              label="Cliente *"
-              value={processoEmEdicao?.cliente || ''}
-              onChange={e => setProcessoEmEdicao(prev => ({ 
-                ...prev!, 
-                cliente: e.target.value 
-              }))}
-            />
-            
-            <Input
-              label="Descrição *"
-              value={processoEmEdicao?.descricao || ''}
-              onChange={e => setProcessoEmEdicao(prev => ({ 
-                ...prev!, 
-                descricao: e.target.value 
-              }))}
-            />
-            
-            <Select
-              value={processoEmEdicao?.status || 'ativo'}
-              onValueChange={valor => setProcessoEmEdicao(prev => ({ 
-                ...prev!, 
-                status: valor as 'ativo' | 'arquivado' | 'concluido' 
-              }))}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Selecione o status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="ativo">Ativo</SelectItem>
-                <SelectItem value="arquivado">Arquivado</SelectItem>
-                <SelectItem value="concluido">Concluído</SelectItem>
-              </SelectContent>
-            </Select>
-            
-            <Input
-              label="Data de Início *"
-              type="date"
-              value={processoEmEdicao?.dataInicio || ''}
-              onChange={e => setProcessoEmEdicao(prev => ({ 
-                ...prev!, 
-                dataInicio: e.target.value 
-              }))}
-            />
-            
-            <Input
-              label="Responsável *"
-              value={processoEmEdicao?.responsavel || ''}
-              onChange={e => setProcessoEmEdicao(prev => ({ 
-                ...prev!, 
-                responsavel: e.target.value 
-              }))}
-            />
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <Input
+                label="Número do Processo *"
+                value={processoEmEdicao?.numeroProcesso || ''}
+                onChange={e => setProcessoEmEdicao(prev => ({ 
+                  ...prev!, 
+                  numeroProcesso: e.target.value 
+                }))}
+              />
+              
+              <Input
+                label="Cliente *"
+                value={processoEmEdicao?.cliente || ''}
+                onChange={e => setProcessoEmEdicao(prev => ({ 
+                  ...prev!, 
+                  cliente: e.target.value 
+                }))}
+              />
+              
+              <Select
+                value={processoEmEdicao?.status || 'ativo'}
+                onValueChange={valor => setProcessoEmEdicao(prev => ({ 
+                  ...prev!, 
+                  status: valor as 'ativo' | 'arquivado' | 'concluido' 
+                }))}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione o status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="ativo">Ativo</SelectItem>
+                  <SelectItem value="arquivado">Arquivado</SelectItem>
+                  <SelectItem value="concluido">Concluído</SelectItem>
+                </SelectContent>
+              </Select>
+              
+              <Input
+                label="Responsável *"
+                value={processoEmEdicao?.responsavel || ''}
+                onChange={e => setProcessoEmEdicao(prev => ({ 
+                  ...prev!, 
+                  responsavel: e.target.value 
+                }))}
+              />
+            </div>
 
-            <div className="space-y-2">
+            <div className="space-y-4">
+              <Input
+                label="Descrição *"
+                value={processoEmEdicao?.descricao || ''}
+                onChange={e => setProcessoEmEdicao(prev => ({ 
+                  ...prev!, 
+                  descricao: e.target.value 
+                }))}
+              />
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <Input
+                  label="Data de Início *"
+                  type="date"
+                  value={processoEmEdicao?.dataInicio || ''}
+                  onChange={e => setProcessoEmEdicao(prev => ({ 
+                    ...prev!, 
+                    dataInicio: e.target.value 
+                  }))}
+                />
+                
+                <Input
+                  label="Prazo Final"
+                  type="date"
+                  value={processoEmEdicao?.prazoFinal || ''}
+                  onChange={e => setProcessoEmEdicao(prev => ({ 
+                    ...prev!, 
+                    prazoFinal: e.target.value 
+                  }))}
+                />
+              </div>
+            </div>
+
+            <div className="space-y-4">
               <Label>Documentos</Label>
               <div className="flex items-center gap-2">
                 <Input
@@ -566,24 +656,39 @@ export default function PaginaDeProcessos() {
                 </Button>
               </div>
               {documentos.length > 0 && (
-                <div className="mt-2 space-y-1">
+                <div className="mt-2 space-y-2">
                   {documentos.map((doc, index) => (
-                    <div key={index} className="text-sm text-gray-500">
-                      {doc.name}
+                    <div key={index} className="flex items-center justify-between p-2 border rounded">
+                      <div className="flex items-center gap-2">
+                        <FileText className="w-4 h-4" />
+                        <span className="text-sm">{doc.name}</span>
+                      </div>
+                      <Button
+                        variant="destructive"
+                        size="sm"
+                        onClick={() => {
+                          const novosDocs = documentos.filter((_, i) => i !== index);
+                          setDocumentos(novosDocs);
+                        }}
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
                     </div>
                   ))}
                 </div>
               )}
             </div>
 
-            <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setModalAberto(false)}>
-                Cancelar
-              </Button>
-              <Button type="submit">
-                {processoEmEdicao ? 'Salvar Alterações' : 'Criar Processo'}
-              </Button>
-            </DialogFooter>
+            <div className="mt-6">
+              <DialogFooter>
+                <Button type="button" variant="outline" onClick={() => setModalAberto(false)}>
+                  Cancelar
+                </Button>
+                <Button type="submit">
+                  {processoEmEdicao ? 'Salvar Alterações' : 'Criar Processo'}
+                </Button>
+              </DialogFooter>
+            </div>
           </form>
         </DialogContent>
       </Dialog>

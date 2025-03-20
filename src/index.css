@@ -7,9 +7,18 @@
 .card-juridico {
   background-color: white;
   border-radius: 0.75rem;
-  box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
   border: 1px solid #e5e7eb;
   padding: 1.5rem;
+  transition: all 0.2s ease-in-out;
+  position: relative;
+  z-index: 0;
+}
+
+.card-juridico:hover {
+  box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+  transform: translateY(-1px);
+  z-index: 1;
 }
 
 .dark .card-juridico {
@@ -22,11 +31,82 @@
   color: white;
   padding: 0.5rem 1rem;
   border-radius: 0.5rem;
-  transition: background-color 0.2s;
+  transition: all 0.2s ease-in-out;
+  font-weight: 500;
+  border: 1px solid transparent;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
 }
 
 .btn-primary:hover {
   background-color: #34495E;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+}
+
+.btn-primary:active {
+  transform: translateY(0);
+}
+
+/* Estilos para botões outline */
+.btn-outline {
+  background-color: transparent;
+  border: 1px solid #2A3F54;
+  color: #2A3F54;
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  transition: all 0.2s ease-in-out;
+  font-weight: 500;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.btn-outline:hover {
+  background-color: #2A3F54;
+  color: white;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+}
+
+/* Estilos para botões destructive */
+.btn-destructive {
+  background-color: #ef4444;
+  color: white;
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  transition: all 0.2s ease-in-out;
+  font-weight: 500;
+  border: 1px solid transparent;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.btn-destructive:hover {
+  background-color: #dc2626;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+}
+
+/* Dark mode adjustments */
+.dark .btn-outline {
+  border-color: #60a5fa;
+  color: #60a5fa;
+}
+
+.dark .btn-outline:hover {
+  background-color: #60a5fa;
+  color: white;
+}
+
+.dark .btn-destructive {
+  background-color: #dc2626;
+}
+
+.dark .btn-destructive:hover {
+  background-color: #b91c1c;
 }
 
 .texto-escuro {
@@ -37,6 +117,12 @@
   color: #f3f4f6;
 }
 
+.tabela-juridica {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
 .tabela-juridica th {
   background-color: #2A3F54;
   color: white;
@@ -44,15 +130,25 @@
   padding: 0.75rem 1.5rem;
   font-size: 0.875rem;
   font-weight: 600;
+  white-space: nowrap;
 }
 
 .tabela-juridica td {
   border-bottom: 1px solid #e5e7eb;
   padding: 1rem 1.5rem;
+  transition: background-color 0.2s ease;
+}
+
+.tabela-juridica tr:hover td {
+  background-color: #f9fafb;
 }
 
 .dark .tabela-juridica td {
   border-color: #374151;
+}
+
+.dark .tabela-juridica tr:hover td {
+  background-color: #374151;
 }
 
 .menu-item-ativo {
@@ -72,6 +168,7 @@
 
 ::-webkit-scrollbar-track {
   background-color: #f3f4f6;
+  border-radius: 4px;
 }
 
 .dark ::-webkit-scrollbar-track {
@@ -80,9 +177,15 @@
 
 ::-webkit-scrollbar-thumb {
   background-color: #2A3F54;
-  border-radius: 9999px;
+  border-radius: 4px;
+  transition: background-color 0.2s ease;
 }
 
+::-webkit-scrollbar-thumb:hover {
+  background-color: #34495E;
+}
+
+/* Inputs e Selects */
 input:invalid, select:invalid {
   border-color: #f87171;
   box-shadow: 0 0 0 1px #f87171;
@@ -91,6 +194,206 @@ input:invalid, select:invalid {
 .border-red-500 {
   border-color: #ef4444;
   box-shadow: 0 0 0 1px #ef4444;
+}
+
+/* Animações */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (min-width: 768px) {
+  .animate-fade-in {
+    animation: fadeIn 0.3s ease-out;
+  }
+
+  .card-juridico {
+    transition: all 0.2s ease-in-out;
+  }
+
+  .card-juridico:hover {
+    transform: translateY(-1px);
+  }
+
+  .btn-primary:hover,
+  .btn-outline:hover,
+  .btn-destructive:hover,
+  .btn-view:hover {
+    transform: translateY(-1px);
+  }
+
+  .hover-lift:hover {
+    transform: translateY(-2px);
+  }
+
+  /* Animações do Sidebar */
+  #sidebar {
+    transition: all 0.3s ease-in-out !important;
+    z-index: 40;
+  }
+
+  #sidebar .transition-transform {
+    transition: transform 0.3s ease-in-out !important;
+  }
+
+  #sidebar .transition-all {
+    transition: all 0.3s ease-in-out !important;
+  }
+
+  #sidebar span,
+  #sidebar h1,
+  #sidebar .user-info {
+    transition: all 0.3s ease-in-out !important;
+  }
+
+  /* Ajuste para o conteúdo principal */
+  main {
+    position: relative;
+    z-index: 0;
+  }
+
+  /* Ajuste para modais e dropdowns */
+  .DialogContent,
+  .SelectContent,
+  .DialogOverlay {
+    z-index: 100;
+  }
+}
+
+/* Responsividade */
+@media (max-width: 768px) {
+  .tabela-juridica {
+    display: block;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .tabela-juridica th,
+  .tabela-juridica td {
+    min-width: 120px;
+  }
+
+  .tabela-juridica th:first-child,
+  .tabela-juridica td:first-child {
+    position: sticky;
+    left: 0;
+    z-index: 1;
+  }
+
+  .tabela-juridica th:last-child,
+  .tabela-juridica td:last-child {
+    position: sticky;
+    right: 0;
+    z-index: 1;
+  }
+
+  .card-juridico {
+    padding: 1rem;
+  }
+
+  /* Remover animações em mobile */
+  #sidebar,
+  #sidebar .transition-transform,
+  #sidebar .transition-all,
+  #sidebar span,
+  #sidebar h1,
+  #sidebar .user-info {
+    transition: none !important;
+  }
+}
+
+/* Estados de Interação */
+.hover-lift {
+  transition: transform 0.2s ease;
+}
+
+.hover-lift:hover {
+  transform: translateY(-2px);
+}
+
+/* Loading States */
+.loading-skeleton {
+  background: linear-gradient(
+    90deg,
+    #f0f0f0 25%,
+    #e0e0e0 50%,
+    #f0f0f0 75%
+  );
+  background-size: 200% 100%;
+  animation: loading 1.5s infinite;
+}
+
+@keyframes loading {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+/* Tooltips */
+.tooltip {
+  position: relative;
+  display: inline-block;
+}
+
+.tooltip .tooltip-text {
+  visibility: hidden;
+  background-color: #2A3F54;
+  color: white;
+  text-align: center;
+  padding: 0.5rem 1rem;
+  border-radius: 0.375rem;
+  position: absolute;
+  z-index: 1;
+  bottom: 125%;
+  left: 50%;
+  transform: translateX(-50%);
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.tooltip:hover .tooltip-text {
+  visibility: visible;
+  opacity: 1;
+}
+
+/* Badges */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.25rem 0.75rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  line-height: 1;
+}
+
+.badge-success {
+  background-color: #dcfce7;
+  color: #166534;
+}
+
+.badge-warning {
+  background-color: #fef3c7;
+  color: #92400e;
+}
+
+.badge-error {
+  background-color: #fee2e2;
+  color: #991b1b;
+}
+
+.badge-info {
+  background-color: #dbeafe;
+  color: #1e40af;
 }
 
 .active-menu-item {
@@ -107,4 +410,80 @@ input:invalid, select:invalid {
   height: 60%;
   background: #3B82F6;
   border-radius: 2px;
+}
+
+/* Estilos para botões de visualização */
+.btn-view {
+  background-color: #2A3F54;
+  color: white;
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  transition: all 0.2s ease-in-out;
+  font-weight: 500;
+  border: 1px solid transparent;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.btn-view:hover {
+  background-color: #34495E;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+}
+
+.btn-view:active {
+  transform: translateY(0);
+}
+
+.btn-view-outline {
+  background-color: transparent;
+  border: 1px solid #2A3F54;
+  color: #2A3F54;
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  transition: all 0.2s ease-in-out;
+  font-weight: 500;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.btn-view-outline:hover {
+  background-color: #2A3F54;
+  color: white;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+}
+
+/* Dark mode adjustments */
+.dark .btn-view-outline {
+  border-color: #60a5fa;
+  color: #60a5fa;
+}
+
+.dark .btn-view-outline:hover {
+  background-color: #60a5fa;
+  color: white;
+}
+
+/* Ajustes para a seção de relatórios */
+.card-juridico .SelectContent,
+.card-juridico .DialogContent {
+  z-index: 100;
+}
+
+/* Ajustes para modais */
+.DialogContent {
+  z-index: 100;
+}
+
+.DialogOverlay {
+  z-index: 99;
+}
+
+/* Ajuste para o conteúdo do dashboard */
+.dashboard-content {
+  position: relative;
+  z-index: 0;
 }

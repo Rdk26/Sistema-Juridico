@@ -13,55 +13,181 @@ import {
   Pencil,
   X,
   Edit,
-  Filter
+  Filter,
+  File,
+  Eye
 } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '../components/ui/Dialog';
 import { Input } from '../components/ui/Input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/Select';
 import { Button } from '../components/ui/Button';
 import { SearchInput } from '../components/ui/SearchInput';
+import { Label } from '../components/ui/Label';
+import { Textarea } from '../components/ui/Textarea';
 
-type Modelo = {
-  id: number;
+interface Modelo {
+  id: string;
   nome: string;
-  categoria: string;
   descricao: string;
-  formato: string;
+  categoria: 'peticao' | 'contrato' | 'procuração' | 'outros';
+  formato: 'docx' | 'pdf';
+  dataCriacao: string;
   ultimaAtualizacao: string;
-  arquivo?: File;
+  arquivo: {
+    nome: string;
+    url: string;
+    dataUpload: string;
+  };
+  historicoVersoes: {
+    id: string;
+    numero: number;
+    data: string;
+    formato: string;
+    observacoes: string;
+  }[];
+}
+
+const getCategoriaStyle = (categoria: string) => {
+  switch (categoria) {
+    case 'peticao':
+      return 'bg-blue-100 text-blue-800';
+    case 'contrato':
+      return 'bg-green-100 text-green-800';
+    case 'procuração':
+      return 'bg-purple-100 text-purple-800';
+    default:
+      return 'bg-gray-100 text-gray-800';
+  }
 };
+
+const getFormatoStyle = (formato: string) => {
+  switch (formato) {
+    case 'pdf':
+      return 'bg-red-100 text-red-800';
+    case 'docx':
+      return 'bg-blue-100 text-blue-800';
+    default:
+      return 'bg-gray-100 text-gray-800';
+  }
+};
+
+const categorias = ['peticao', 'contrato', 'procuração', 'outros'];
+
+const modelosMock: Modelo[] = [
+  {
+    id: '1',
+    nome: 'Petição Inicial',
+    descricao: 'Modelo padrão para petição inicial',
+    categoria: 'peticao',
+    formato: 'docx',
+    dataCriacao: '2024-03-20',
+    ultimaAtualizacao: '2024-03-20',
+    arquivo: {
+      nome: 'peticao-inicial.docx',
+      url: '/modelos/peticao-inicial.docx',
+      dataUpload: '2024-03-20'
+    },
+    historicoVersoes: []
+  },
+  {
+    id: '2',
+    nome: 'Contrato de Prestação de Serviços',
+    descricao: 'Modelo para contrato de prestação de serviços',
+    categoria: 'contrato',
+    formato: 'pdf',
+    dataCriacao: '2024-03-15',
+    ultimaAtualizacao: '2024-03-18',
+    arquivo: {
+      nome: 'contrato-servicos.pdf',
+      url: '/modelos/contrato-servicos.pdf',
+      dataUpload: '2024-03-18'
+    },
+    historicoVersoes: []
+  },
+];
 
 export default function ModelosPage() {
   const [busca, setBusca] = useState('');
   const [categoriaSelecionada, setCategoriaSelecionada] = useState('todos');
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isViewModalOpen, setIsViewModalOpen] = useState(false);
   const [modeloEditando, setModeloEditando] = useState<Modelo | null>(null);
-  const [modeloVisualizando, setModeloVisualizando] = useState<Modelo | null>(null);
-  const [novoModelo, setNovoModelo] = useState<Partial<Modelo>>({
-    categoria: 'Contratos',
-    formato: 'DOCX'
-  });
+  const [modeloSelecionado, setModeloSelecionado] = useState<Modelo | null>(null);
+  const [modelos, setModelos] = useState<Modelo[]>(modelosMock);
 
-  const [modelos, setModelos] = useState<Modelo[]>([
-    {
-      id: 1,
-      nome: 'Contrato de Prestação de Serviços',
-      categoria: 'Contratos',
-      descricao: 'Modelo padrão para contratação de serviços jurídicos',
-      formato: 'DOCX',
-      ultimaAtualizacao: '2024-03-15'
-    },
-    {
-      id: 2,
-      nome: 'Petição Inicial - Ação de Divórcio',
-      categoria: 'Petições',
-      descricao: 'Modelo para ação de divórcio consensual',
-      formato: 'PDF',
-      ultimaAtualizacao: '2024-02-28'
-    },
-  ]);
+  const handleEdit = (modelo: Modelo) => {
+    setModeloEditando(modelo);
+    setIsModalOpen(true);
+  };
 
-  const categorias = ['Contratos', 'Petições', 'Recursos', 'Societário'];
+  const handleDelete = (id: string) => {
+    if (window.confirm('Tem certeza que deseja excluir este modelo?')) {
+      setModelos(anterior => anterior.filter(modelo => modelo.id !== id));
+    }
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (modeloEditando?.id) {
+      setModelos(anterior => anterior.map(modelo => 
+        modelo.id === modeloEditando.id ? {
+          ...modeloEditando,
+          formato: modeloEditando.formato as 'docx' | 'pdf',
+          categoria: modeloEditando.categoria as 'peticao' | 'contrato' | 'procuração' | 'outros'
+        } : modelo
+      ));
+    } else {
+      const novoModelo: Modelo = {
+        id: Date.now().toString(),
+        nome: modeloEditando?.nome || '',
+        descricao: modeloEditando?.descricao || '',
+        categoria: (modeloEditando?.categoria || 'outros') as 'peticao' | 'contrato' | 'procuração' | 'outros',
+        formato: (modeloEditando?.formato || 'docx') as 'docx' | 'pdf',
+        dataCriacao: new Date().toISOString(),
+        ultimaAtualizacao: new Date().toISOString(),
+        arquivo: {
+          nome: modeloEditando?.arquivo?.nome || '',
+          url: modeloEditando?.arquivo?.url || '',
+          dataUpload: new Date().toISOString()
+        },
+        historicoVersoes: []
+      };
+      setModelos(prev => [...prev, novoModelo]);
+    }
+    setIsModalOpen(false);
+    setModeloEditando(null);
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const url = URL.createObjectURL(file);
+      const formato = file.name.split('.').pop()?.toLowerCase() as 'docx' | 'pdf' || 'docx';
+      setModeloEditando(prev => ({
+        ...prev!,
+        arquivo: {
+          nome: file.name,
+          url: url,
+          dataUpload: new Date().toISOString()
+        },
+        formato
+      }));
+    }
+  };
+
+  const handleDownload = (modelo: Modelo) => {
+    const link = document.createElement('a');
+    link.href = modelo.arquivo.url;
+    link.download = modelo.arquivo.nome;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const handleVisualizar = (modelo: Modelo) => {
+    setModeloSelecionado(modelo);
+    setIsViewModalOpen(true);
+  };
 
   const modelosFiltrados = modelos.filter(modelo => {
     const buscaMatch = modelo.nome.toLowerCase().includes(busca.toLowerCase()) ||
@@ -73,399 +199,100 @@ export default function ModelosPage() {
     return buscaMatch && categoriaMatch;
   });
 
-  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const arquivo = event.target.files?.[0];
-    if (arquivo) {
-      const formato = arquivo.name.split('.').pop()?.toUpperCase() || 'DOCX';
-      
-      if (modeloEditando) {
-        setModeloEditando(anterior => ({
-          ...anterior!,
-          arquivo,
-          formato
-        }));
-      } else {
-        setNovoModelo(anterior => ({
-          ...anterior,
-          arquivo,
-          formato
-        }));
-      }
-    }
-  };
-
-  const handleSubmit = () => {
-    if (modeloEditando) {
-      setModelos(anterior => 
-        anterior.map(modelo => 
-          modelo.id === modeloEditando.id ? { ...modeloEditando } : modelo
-        )
-      );
-    } else {
-      const novoModeloCompleto: Modelo = {
-        id: Math.max(...modelos.map(modelo => modelo.id), 0) + 1,
-        nome: novoModelo.nome!,
-        categoria: novoModelo.categoria!,
-        descricao: novoModelo.descricao!,
-        formato: novoModelo.formato!,
-        ultimaAtualizacao: new Date().toISOString().split('T')[0],
-        arquivo: novoModelo.arquivo
-      };
-      setModelos(anterior => [...anterior, novoModeloCompleto]);
-    }
-
-    setIsModalOpen(false);
-    setModeloEditando(null);
-    setNovoModelo({ categoria: 'Contratos', formato: 'DOCX' });
-  };
-
-  const handleDelete = (id: number) => {
-    if (window.confirm('Tem certeza que deseja excluir este modelo?')) {
-      setModelos(anterior => anterior.filter(modelo => modelo.id !== id));
-    }
-  };
-
-  const handleDownload = (modelo: Modelo) => {
-    if (!modelo.arquivo) {
-      alert('Arquivo não disponível para download');
-      return;
-    }
-
-    const url = URL.createObjectURL(modelo.arquivo);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `${modelo.nome}.${modelo.formato.toLowerCase()}`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
-  };
-
-  const handleVisualizar = (modelo: Modelo) => {
-    if (!modelo.arquivo) {
-      alert('Arquivo não disponível para visualização');
-      return;
-    }
-    setModeloVisualizando(modelo);
-  };
-
-  const VisualizadorArquivo = () => {
-    const [conteudoHTML, setConteudoHTML] = useState('');
-
-    useEffect(() => {
-      const carregarConteudo = async () => {
-        if (modeloVisualizando?.arquivo) {
-          if (modeloVisualizando.formato === 'PDF') {
-            return;
-          }
-          
-          const leitor = new FileReader();
-          leitor.onload = async (evento) => {
-            const buffer = evento.target?.result;
-            if (buffer) {
-              try {
-                const resultado = await mammoth.convertToHtml({ arrayBuffer: buffer as ArrayBuffer });
-                setConteudoHTML(resultado.value);
-              } catch (erro) {
-                console.error('Erro na conversão do documento:', erro);
-                alert('Não foi possível exibir este formato de arquivo');
-                setModeloVisualizando(null);
-              }
-            }
-          };
-          leitor.readAsArrayBuffer(modeloVisualizando.arquivo);
-        }
-      };
-
-      carregarConteudo();
-    }, [modeloVisualizando]);
-
-    if (!modeloVisualizando?.arquivo) return null;
-
-    return (
-      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-        <div className="bg-white rounded-lg w-full max-w-4xl h-[90vh] flex flex-col">
-          <div className="flex justify-between items-center p-4 border-b">
-            <h2 className="text-xl font-bold">{modeloVisualizando.nome}</h2>
-            <Button
-              variant="outline"
-              onClick={() => setModeloVisualizando(null)}
-            >
-              <X className="w-4 h-4 mr-2" />
-              Fechar
-            </Button>
-          </div>
-          
-          {modeloVisualizando.formato === 'PDF' ? (
-            <iframe 
-              src={URL.createObjectURL(modeloVisualizando.arquivo)} 
-              className="flex-1 w-full" 
-              title="Visualizador de PDF"
-            />
-          ) : (
-            <div 
-              className="prose max-w-none p-4 overflow-auto"
-              dangerouslySetInnerHTML={{ __html: conteudoHTML }}
-            />
-          )}
-        </div>
-      </div>
-    );
-  };
-
   return (
-    <main className="flex-1 overflow-auto p-6">
-      <h1 className="text-3xl font-bold mb-8 texto-escuro">Modelos Jurídicos</h1>
-
-      {/* Seção de Filtros e Exportação */}
-      <div className="mb-6 grid grid-cols-1 md:grid-cols-4 gap-4">
-        <div className="flex-1">
-          <SearchInput
-            placeholder="Buscar modelo..."
-            value={busca}
-            onChange={(e) => setBusca(e.target.value)}
-          />
-        </div>
-        
-        <Select
-          value={categoriaSelecionada}
-          onValueChange={(value) => setCategoriaSelecionada(value)}
-        >
-          <SelectTrigger>
-            <SelectValue placeholder="Todas as categorias" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="todos">Todas as categorias</SelectItem>
-            {categorias.map(categoria => (
-              <SelectItem key={categoria} value={categoria}>
-                {categoria}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-
-        <Button 
-          onClick={() => setIsModalOpen(true)} 
-          className="flex items-center justify-center gap-2"
-        >
-          <Plus className="w-5 h-5" />
+    <div className="container mx-auto p-4">
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-2xl font-bold">Modelos de Documentos</h1>
+        <Button onClick={() => {
+          setModeloEditando({
+            id: '',
+            nome: '',
+            descricao: '',
+            categoria: 'outros',
+            formato: 'docx',
+            dataCriacao: '',
+            ultimaAtualizacao: '',
+            arquivo: {
+              nome: '',
+              url: '',
+              dataUpload: ''
+            },
+            historicoVersoes: []
+          });
+          setIsModalOpen(true);
+        }}>
           Novo Modelo
         </Button>
       </div>
 
-      {/* Modal de Edição/Criação */}
-      <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-        <DialogContent className="sm:max-w-[600px]">
-          <DialogHeader>
-            <DialogTitle>
-              {modeloEditando ? 'Editar Modelo' : 'Novo Modelo'}
-            </DialogTitle>
-          </DialogHeader>
-
-          <div className="space-y-4">
-            <Input
-              label="Nome do Modelo *"
-              value={modeloEditando?.nome || novoModelo.nome || ''}
-              onChange={(evento) => {
-                if (modeloEditando) {
-                  setModeloEditando({ ...modeloEditando, nome: evento.target.value });
-                } else {
-                  setNovoModelo({ ...novoModelo, nome: evento.target.value });
-                }
-              }}
-            />
-
-            <Select
-              value={modeloEditando?.categoria || novoModelo.categoria}
-              onValueChange={(valor) => {
-                if (modeloEditando) {
-                  setModeloEditando({ ...modeloEditando, categoria: valor });
-                } else {
-                  setNovoModelo({ ...novoModelo, categoria: valor });
-                }
-              }}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Selecione a Categoria" />
-              </SelectTrigger>
-              <SelectContent>
-                {categorias.map(categoria => (
-                  <SelectItem key={categoria} value={categoria}>
-                    {categoria}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-
-            <Input
-              label="Descrição *"
-              value={modeloEditando?.descricao || novoModelo.descricao || ''}
-              onChange={(evento) => {
-                if (modeloEditando) {
-                  setModeloEditando({ ...modeloEditando, descricao: evento.target.value });
-                } else {
-                  setNovoModelo({ ...novoModelo, descricao: evento.target.value });
-                }
-              }}
-            />
-
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Upload do Documento *</label>
-              <div className="card-juridico p-4 flex flex-col items-center gap-4">
-                <input
-                  type="file"
-                  accept=".docx,.pdf"
-                  onChange={handleFileUpload}
-                  className="hidden"
-                  id="file-upload"
-                />
-                <label 
-                  htmlFor="file-upload"
-                  className="btn-primary flex items-center gap-2 cursor-pointer"
-                >
-                  <Upload className="w-4 h-4" />
-                  Selecionar Arquivo
-                </label>
-                
-                {(modeloEditando?.arquivo || novoModelo.arquivo) && (
-                  <div className="flex items-center gap-2 text-sm">
-                    <FileText className="w-4 h-4" />
-                    <span>{(modeloEditando || novoModelo).arquivo?.name}</span>
-                    <span className="text-gray-500">({(modeloEditando || novoModelo).formato})</span>
-                  </div>
-                )}
-                
-                <p className="text-xs text-gray-500 text-center">
-                  Formatos aceitos: .docx, .pdf (Tamanho máximo: 5MB)
-                </p>
-              </div>
-            </div>
-          </div>
-
-          <DialogFooter>
-            <Button 
-              variant="outline" 
-              onClick={() => {
-                setIsModalOpen(false);
-                setModeloEditando(null);
-                setNovoModelo({ categoria: 'Contratos', formato: 'DOCX' });
-              }}
-            >
-              Cancelar
-            </Button>
-            <Button 
-              onClick={handleSubmit}
-              disabled={
-                !(modeloEditando?.nome || novoModelo.nome) ||
-                !(modeloEditando?.categoria || novoModelo.categoria) ||
-                !(modeloEditando?.descricao || novoModelo.descricao) ||
-                !(modeloEditando?.arquivo || novoModelo.arquivo)
-              }
-            >
-              {modeloEditando ? 'Salvar Alterações' : 'Criar Modelo'}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Estatísticas */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-        <div className="card-juridico p-6">
-          <div className="flex items-center gap-4">
-            <div className="bg-primary/10 dark:bg-primary/100 p-3 rounded-full">
-              <FileText className="w-6 h-6 text-primary dark:text-white" />
-            </div>
-            <div>
-              <p className="texto-escuro text-lg font-semibold">Total de Modelos</p>
-              <p className="text-3xl font-bold">{modelos.length}</p>
-            </div>
-          </div>
-        </div>
-        
-        <div className="card-juridico p-6">
-          <div className="flex items-center gap-4">
-            <div className="bg-green-100 p-3 rounded-full">
-              <Download className="w-6 h-6 text-green-600" />
-            </div>
-            <div>
-              <p className="texto-escuro text-lg font-semibold">Downloads no Mês</p>
-              <p className="text-3xl font-bold">1.245</p>
-            </div>
-          </div>
-        </div>
-        
-        <div className="card-juridico p-6">
-          <div className="flex items-center gap-4">
-            <div className="bg-blue-100 p-3 rounded-full">
-              <Star className="w-6 h-6 text-blue-600" />
-            </div>
-            <div>
-              <p className="texto-escuro text-lg font-semibold">Modelos Favoritos</p>
-              <p className="text-3xl font-bold">2</p>
-            </div>
-          </div>
-        </div>
+      <div className="flex gap-4 mb-6">
+        <SearchInput
+          value={busca}
+          onChange={(e) => setBusca(e.target.value)}
+          placeholder="Buscar modelos..."
+        />
+        <Select
+          value={categoriaSelecionada}
+          onValueChange={setCategoriaSelecionada}
+        >
+          <SelectTrigger className="w-[180px]">
+            <SelectValue placeholder="Categoria" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="todos">Todas as Categorias</SelectItem>
+            {categorias.map(categoria => (
+              <SelectItem key={categoria} value={categoria}>
+                {categoria.charAt(0).toUpperCase() + categoria.slice(1)}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
 
-      {/* Lista de Modelos */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {modelosFiltrados.map(modelo => (
-          <div key={modelo.id} className="card-juridico p-6 relative">
-            <div className="absolute top-4 right-4 flex gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => {
-                  setModeloEditando(modelo);
-                  setIsModalOpen(true);
-                }}
-              >
-                <Pencil className="w-4 h-4 text-blue-600" />
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => handleDelete(modelo.id)}
-              >
-                <Trash2 className="w-4 h-4 text-red-600" />
-              </Button>
-            </div>
-
+          <div key={modelo.id} className="card-juridico p-4">
             <div className="flex justify-between items-start mb-4">
               <div>
-                <h3 className="texto-escuro text-xl font-semibold">{modelo.nome}</h3>
-                <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                  {modelo.categoria} • {modelo.formato}
-                </p>
+                <h3 className="font-semibold">{modelo.nome}</h3>
+                <p className="text-sm text-gray-500">{modelo.descricao}</p>
               </div>
+              <span className={`px-2.5 py-0.5 rounded-full text-xs ${getFormatoStyle(modelo.formato)}`}>
+                {modelo.formato.toUpperCase()}
+              </span>
             </div>
-            
-            <p className="texto-escuro mb-4">{modelo.descricao}</p>
-            
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2 text-sm">
-                <Clock className="w-4 h-4 text-gray-500" />
-                <span className="texto-escuro">
-                  Atualizado em {new Date(modelo.ultimaAtualizacao).toLocaleDateString('pt-MZ')}
-                </span>
-              </div>
-              
-              <div className="flex gap-3">
+            <div className="flex justify-between items-center">
+              <span className={`px-2.5 py-0.5 rounded-full text-xs ${getCategoriaStyle(modelo.categoria)}`}>
+                {modelo.categoria.charAt(0).toUpperCase() + modelo.categoria.slice(1)}
+              </span>
+              <div className="flex gap-2">
                 <Button
                   variant="outline"
-                  onClick={() => handleDownload(modelo)}
-                  disabled={!modelo.arquivo}
+                  size="sm"
+                  onClick={() => handleVisualizar(modelo)}
                 >
-                  <Download className="w-4 h-4 mr-2" />
-                  Download
+                  <Eye className="w-4 h-4" />
                 </Button>
                 <Button
                   variant="outline"
-                  onClick={() => handleVisualizar(modelo)}
-                  disabled={!modelo.arquivo}
+                  size="sm"
+                  onClick={() => handleDownload(modelo)}
                 >
-                  <FileText className="w-4 h-4 mr-2" />
-                  Visualizar
+                  <Download className="w-4 h-4" />
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleEdit(modelo)}
+                >
+                  <Pencil className="w-4 h-4" />
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleDelete(modelo.id)}
+                >
+                  <Trash2 className="w-4 h-4" />
                 </Button>
               </div>
             </div>
@@ -473,7 +300,262 @@ export default function ModelosPage() {
         ))}
       </div>
 
-      {modeloVisualizando && <VisualizadorArquivo />}
-    </main>
+      {/* Modal de Edição/Criação */}
+      <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
+        <DialogContent className="sm:max-w-[600px]">
+          <DialogHeader>
+            <DialogTitle>
+              {modeloEditando?.id ? 'Editar Modelo' : 'Novo Modelo'}
+            </DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+              <Label htmlFor="nome">Nome</Label>
+              <Input
+                id="nome"
+                value={modeloEditando?.nome || ''}
+                onChange={(e) => setModeloEditando(prev => ({
+                  ...prev!,
+                  nome: e.target.value
+                }))}
+                required
+              />
+            </div>
+            <div>
+              <Label htmlFor="descricao">Descrição</Label>
+              <Textarea
+                id="descricao"
+                value={modeloEditando?.descricao || ''}
+                onChange={(e) => setModeloEditando(prev => ({
+                  ...prev!,
+                  descricao: e.target.value
+                }))}
+                required
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="categoria">Categoria</Label>
+                <Select
+                  value={modeloEditando?.categoria || 'outros'}
+                  onValueChange={(value) => setModeloEditando(prev => ({
+                    ...prev!,
+                    categoria: value as 'peticao' | 'contrato' | 'procuração' | 'outros'
+                  }))}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione a categoria" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {categorias.map(categoria => (
+                      <SelectItem key={categoria} value={categoria}>
+                        {categoria.charAt(0).toUpperCase() + categoria.slice(1)}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label htmlFor="formato">Formato</Label>
+                <Select
+                  value={modeloEditando?.formato || 'docx'}
+                  onValueChange={(value) => setModeloEditando(prev => ({
+                    ...prev!,
+                    formato: value as 'docx' | 'pdf'
+                  }))}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione o formato" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="docx">DOCX</SelectItem>
+                    <SelectItem value="pdf">PDF</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div>
+              <Label htmlFor="arquivo">Arquivo</Label>
+              <div className="flex items-center gap-2">
+                <Input
+                  type="file"
+                  accept=".docx,.pdf"
+                  onChange={handleFileChange}
+                  className="hidden"
+                  id="arquivo"
+                />
+                <Label
+                  htmlFor="arquivo"
+                  className="flex items-center gap-2 px-4 py-2 border rounded-md cursor-pointer hover:bg-gray-50"
+                >
+                  <Upload className="w-4 h-4" />
+                  <span>Selecionar Arquivo</span>
+                </Label>
+                {modeloEditando?.arquivo?.nome && (
+                  <div className="flex items-center gap-2 text-sm">
+                    <FileText className="w-4 h-4" />
+                    <span>{modeloEditando.arquivo.nome}</span>
+                    <span className="text-gray-500">({modeloEditando.formato})</span>
+                  </div>
+                )}
+              </div>
+            </div>
+            <DialogFooter>
+              <Button type="submit">
+                {modeloEditando?.id ? 'Salvar Alterações' : 'Criar Modelo'}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal de Visualização */}
+      <Dialog open={isViewModalOpen} onOpenChange={setIsViewModalOpen}>
+        <DialogContent className="sm:max-w-[800px] p-4 md:p-6">
+          <DialogHeader>
+            <DialogTitle>
+              <div className="text-xl font-bold mb-4">
+                Detalhes do Modelo: {modeloSelecionado?.nome}
+              </div>
+            </DialogTitle>
+          </DialogHeader>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
+            <div className="space-y-4 md:space-y-6">
+              <div className="card-juridico p-4">
+                <h3 className="text-base font-semibold mb-3">Informações Principais</h3>
+                <div className="space-y-3">
+                  <div className="flex justify-between items-center">
+                    <span className="font-medium text-gray-600">Nome:</span>
+                    <span>{modeloSelecionado?.nome}</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="font-medium text-gray-600">Categoria:</span>
+                    <span className={`px-2.5 py-0.5 rounded-full text-xs ${getCategoriaStyle(modeloSelecionado?.categoria || 'outros')}`}>
+                      {modeloSelecionado?.categoria.toUpperCase()}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="font-medium text-gray-600">Formato:</span>
+                    <span className={`px-2.5 py-0.5 rounded-full text-xs ${getFormatoStyle(modeloSelecionado?.formato || 'docx')}`}>
+                      {modeloSelecionado?.formato.toUpperCase()}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="font-medium text-gray-600">Data de Criação:</span>
+                    <span>
+                      {modeloSelecionado?.dataCriacao 
+                        ? new Date(modeloSelecionado.dataCriacao).toLocaleDateString('pt-MZ') 
+                        : ''}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="font-medium text-gray-600">Última Atualização:</span>
+                    <span>
+                      {modeloSelecionado?.ultimaAtualizacao 
+                        ? new Date(modeloSelecionado.ultimaAtualizacao).toLocaleDateString('pt-MZ') 
+                        : ''}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="card-juridico p-4">
+                <h3 className="text-base font-semibold mb-3">Descrição</h3>
+                <p className="text-gray-600">{modeloSelecionado?.descricao}</p>
+              </div>
+            </div>
+
+            <div className="space-y-4 md:space-y-6">
+              <div className="card-juridico p-4">
+                <h3 className="text-base font-semibold mb-3">Arquivo</h3>
+                {modeloSelecionado?.arquivo ? (
+                  <div className="flex items-center justify-between p-2 border rounded">
+                    <div className="flex items-center gap-2">
+                      <File className="w-4 h-4 text-gray-500" />
+                      <div>
+                        <div className="text-sm font-medium">{modeloSelecionado.arquivo.nome}</div>
+                        <div className="text-xs text-gray-500">
+                          {new Date(modeloSelecionado.arquivo.dataUpload).toLocaleDateString('pt-MZ')}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          if (modeloSelecionado.arquivo.nome.toLowerCase().endsWith('.pdf')) {
+                            window.open(modeloSelecionado.arquivo.url, '_blank');
+                          } else {
+                            alert('Este tipo de arquivo não pode ser visualizado diretamente');
+                          }
+                        }}
+                      >
+                        <Eye className="w-4 h-4" />
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          const link = document.createElement('a');
+                          link.href = modeloSelecionado.arquivo.url;
+                          link.download = modeloSelecionado.arquivo.nome;
+                          document.body.appendChild(link);
+                          link.click();
+                          document.body.removeChild(link);
+                        }}
+                      >
+                        <Download className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="p-3 border rounded-lg text-center text-gray-500">
+                    Nenhum arquivo associado a este modelo
+                  </div>
+                )}
+              </div>
+
+              <div className="card-juridico p-4">
+                <h3 className="text-base font-semibold mb-3">Histórico de Versões</h3>
+                {modeloSelecionado?.historicoVersoes && modeloSelecionado.historicoVersoes.length > 0 ? (
+                  <div className="space-y-2">
+                    {modeloSelecionado.historicoVersoes.map((versao) => (
+                      <div key={versao.id} className="p-2 border rounded">
+                        <div className="flex justify-between items-start">
+                          <div>
+                            <div className="font-medium">Versão {versao.numero}</div>
+                            <div className="text-sm text-gray-500">
+                              {new Date(versao.data).toLocaleDateString('pt-MZ')}
+                            </div>
+                          </div>
+                          <span className={`px-2.5 py-0.5 rounded-full text-xs ${getFormatoStyle(versao.formato)}`}>
+                            {versao.formato.toUpperCase()}
+                          </span>
+                        </div>
+                        <p className="text-sm text-gray-600 mt-2">{versao.observacoes}</p>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="p-3 border rounded-lg text-center text-gray-500">
+                    Não há histórico de versões registrado
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+          
+          <DialogFooter>
+            <div className="mt-6">
+              <Button variant="outline" onClick={() => setIsViewModalOpen(false)}>
+                Fechar
+              </Button>
+            </div>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
   );
 }
