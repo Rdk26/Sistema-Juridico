@@ -2,7 +2,6 @@
 import { useState, useEffect } from 'react';
 import {
   Plus,
-  Search,
   Building,
   User,
   Phone,
@@ -18,7 +17,6 @@ import {
   Eye,
   Upload,
   Download,
-  Filter
 } from 'lucide-react';
 import { Skeleton } from '../components/Skeleton';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '../components/ui/Dialog';
@@ -28,6 +26,7 @@ import { Button } from '../components/ui/Button';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '../components/ui/Tabs';
 import { ResponsiveContainer, PieChart as RechartsPieChart, Pie, Cell, Tooltip } from 'recharts';
 import { SearchInput } from '../components/ui/SearchInput';
+import ExcelJS from 'exceljs';
 
 type Cliente = {
   id: number;
@@ -317,9 +316,55 @@ export default function ClientesPage() {
     }
   };
 
-  const exportarParaExcel = () => {
-    // Implemente a lógica para exportar para Excel
-    console.log('Exportar para Excel');
+  const exportarParaExcel = async () => {
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet('Clientes');
+
+    // Configurar cabeçalhos
+    worksheet.columns = [
+      { header: 'Nome', key: 'nome', width: 30 },
+      { header: 'Tipo', key: 'tipo', width: 15 },
+      { header: 'NIF', key: 'nif', width: 15 },
+      { header: 'Contacto', key: 'contacto', width: 20 },
+      { header: 'Email', key: 'email', width: 30 },
+      { header: 'Empresa', key: 'empresa', width: 30 },
+      { header: 'Data Cadastro', key: 'dataCadastro', width: 15 },
+      { header: 'Status', key: 'status', width: 10 }
+    ];
+
+    // Adicionar dados
+    clientes.forEach(cliente => {
+      worksheet.addRow({
+        nome: cliente.nome,
+        tipo: cliente.tipo === 'PessoaColetiva' ? 'Pessoa Coletiva' : 'Pessoa Singular',
+        nif: cliente.numeroIdentificacaoFiscal,
+        contacto: cliente.contacto,
+        email: cliente.email,
+        empresa: cliente.empresa,
+        dataCadastro: new Date(cliente.dataCadastro).toLocaleDateString('pt-MZ'),
+        status: cliente.status.toUpperCase()
+      });
+    });
+
+    // Estilizar cabeçalhos
+    worksheet.getRow(1).font = { bold: true };
+    worksheet.getRow(1).fill = {
+      type: 'pattern',
+      pattern: 'solid',
+      fgColor: { argb: 'FFE0E0E0' }
+    };
+
+    // Gerar arquivo
+    const buffer = await workbook.xlsx.writeBuffer();
+    const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `relatorio_clientes_${new Date().toISOString().split('T')[0]}.xlsx`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(url);
   };
 
   return (

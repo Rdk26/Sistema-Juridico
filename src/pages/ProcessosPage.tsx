@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
-import { 
-  Search, 
+import {  
   Clock, 
   CheckCircle, 
   AlertCircle, 
@@ -77,7 +76,6 @@ export default function PaginaDeProcessos() {
   });
   const [modalAberto, setModalAberto] = useState(false);
   const [processoEmEdicao, setProcessoEmEdicao] = useState<Processo | null>(null);
-  const [isModalOpen, setIsModalOpen] = useState(false);
   const [documentos, setDocumentos] = useState<File[]>([]);
   const [isDetalhesModalOpen, setIsDetalhesModalOpen] = useState(false);
   const [processoSelecionado, setProcessoSelecionado] = useState<Processo | null>(null);

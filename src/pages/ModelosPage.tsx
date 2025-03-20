@@ -1,19 +1,11 @@
 // pages/ModelosPage.tsx
-import { useState, useEffect } from 'react';
-import * as mammoth from 'mammoth';
+import { useState } from 'react';
 import { 
-  Search, 
   FileText, 
   Download, 
-  Clock, 
-  Star, 
-  Plus, 
   Upload, 
   Trash2, 
   Pencil,
-  X,
-  Edit,
-  Filter,
   File,
   Eye
 } from 'lucide-react';
@@ -220,7 +212,7 @@ export default function ModelosPage() {
             historicoVersoes: []
           });
           setIsModalOpen(true);
-        }}>
+        }} className="btn-primary">
           Novo Modelo
         </Button>
       </div>

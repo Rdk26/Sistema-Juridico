@@ -2,7 +2,6 @@
 import { useState, useEffect } from 'react';
 import { 
   Plus, 
-  Search, 
   Briefcase, 
   Phone, 
   Calendar, 
@@ -17,8 +16,7 @@ import {
   Edit,
   Eye,
   Download,
-  Filter,
-  X
+
 } from 'lucide-react';
 import { Skeleton } from '../components/Skeleton';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '../components/ui/Dialog';
@@ -28,6 +26,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '../components/ui/Tabs';
 import { ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import { SearchInput } from '../components/ui/SearchInput';
+import ExcelJS from 'exceljs';
 
 type Funcionario = {
   id: number;
@@ -250,9 +249,53 @@ export default function PessoalInternoPage() {
     }
   };
 
-  const exportarParaExcel = () => {
-    // Implemente a lógica para exportar os dados para Excel
-    console.log('Exportar para Excel');
+  const exportarParaExcel = async () => {
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet('Funcionários');
+
+    // Configurar cabeçalhos
+    worksheet.columns = [
+      { header: 'Nome', key: 'nome', width: 30 },
+      { header: 'Cargo', key: 'cargo', width: 25 },
+      { header: 'Departamento', key: 'departamento', width: 20 },
+      { header: 'Data Contratação', key: 'dataContratacao', width: 15 },
+      { header: 'Contacto', key: 'contacto', width: 20 },
+      { header: 'NIF', key: 'nif', width: 15 },
+      { header: 'Status', key: 'status', width: 10 }
+    ];
+
+    // Adicionar dados
+    funcionarios.forEach(funcionario => {
+      worksheet.addRow({
+        nome: funcionario.nome,
+        cargo: funcionario.cargo,
+        departamento: funcionario.departamento,
+        dataContratacao: new Date(funcionario.dataContratacao).toLocaleDateString('pt-MZ'),
+        contacto: funcionario.contacto,
+        nif: funcionario.nif || '',
+        status: funcionario.status.toUpperCase()
+      });
+    });
+
+    // Estilizar cabeçalhos
+    worksheet.getRow(1).font = { bold: true };
+    worksheet.getRow(1).fill = {
+      type: 'pattern',
+      pattern: 'solid',
+      fgColor: { argb: 'FFE0E0E0' }
+    };
+
+    // Gerar arquivo
+    const buffer = await workbook.xlsx.writeBuffer();
+    const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `relatorio_funcionarios_${new Date().toISOString().split('T')[0]}.xlsx`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(url);
   };
 
   return (

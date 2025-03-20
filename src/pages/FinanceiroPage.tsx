@@ -10,6 +10,8 @@ import {
   Legend
 } from 'recharts';
 import { FinanceChart } from '../components/FinanceChart';
+import ExcelJS from 'exceljs';
+import { saveAs } from 'file-saver';
 
 // Tipos
 type Categoria = {
@@ -23,6 +25,7 @@ type Metrica = {
   valor: string;
   icone: JSX.Element;
   variacao: string;
+
 };
 
 // Função de formatação monetária
@@ -65,6 +68,67 @@ export default function FinanceiroPage() {
     { nome: "Investimentos", valor: 35000, cor: "#6366F1" }
   ];
 
+  // Função para gerar relatório
+  const gerarRelatorio = async () => {
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet('Relatório Financeiro');
+
+    // Configurar colunas
+    worksheet.columns = [
+      { header: 'Categoria', key: 'categoria', width: 20 },
+      { header: 'Valor', key: 'valor', width: 15 },
+      { header: 'Data', key: 'data', width: 15 },
+      { header: 'Status', key: 'status', width: 15 }
+    ];
+
+    // Adicionar dados das métricas
+    worksheet.addRow({
+      categoria: 'Receita Total',
+      valor: formatarMoeda(245600),
+      data: new Date().toLocaleDateString('pt-MZ'),
+      status: 'Concluído'
+    });
+
+    worksheet.addRow({
+      categoria: 'Despesas',
+      valor: formatarMoeda(178200),
+      data: new Date().toLocaleDateString('pt-MZ'),
+      status: 'Concluído'
+    });
+
+    worksheet.addRow({
+      categoria: 'Saldo Atual',
+      valor: formatarMoeda(67400),
+      data: new Date().toLocaleDateString('pt-MZ'),
+      status: 'Concluído'
+    });
+
+    // Adicionar dados das categorias
+    categorias.forEach(categoria => {
+      worksheet.addRow({
+        categoria: categoria.nome,
+        valor: formatarMoeda(categoria.valor),
+        data: new Date().toLocaleDateString('pt-MZ'),
+        status: 'Concluído'
+      });
+    });
+
+    // Estilizar cabeçalhos
+    worksheet.getRow(1).font = { bold: true };
+    worksheet.getRow(1).fill = {
+      type: 'pattern',
+      pattern: 'solid',
+      fgColor: { argb: 'FFE0E0E0' }
+    };
+
+    // Gerar arquivo
+    const buffer = await workbook.xlsx.writeBuffer();
+    const blob = new Blob([buffer], { 
+      type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' 
+    });
+    saveAs(blob, `relatorio_financeiro_${new Date().toLocaleDateString('pt-MZ')}.xlsx`);
+  };
+
   return (
     <main className="flex-1 overflow-auto p-6">
       <h1 className="text-3xl font-bold mb-8 texto-escuro">Gestão Financeira</h1>
@@ -94,7 +158,10 @@ export default function FinanceiroPage() {
           <option>Impostos</option>
         </select>
         
-        <button className="btn-primary flex items-center justify-center gap-2">
+        <button 
+          onClick={gerarRelatorio}
+          className="btn-primary flex items-center justify-center gap-2"
+        >
           <PieChart className="w-5 h-5" />
           Gerar Relatório
         </button>

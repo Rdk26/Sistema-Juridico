@@ -1,17 +1,13 @@
 // pages/AtividadesPage.tsx
 import { useState, useEffect } from 'react';
+import ExcelJS from 'exceljs';
 import {
   Plus,
-  Search,
   Calendar,
   CheckCircle,
-  AlertTriangle,
-  Clock,
   Users,
   Edit,
   Trash2,
-  AlertCircle,
-  Filter,
   Download,
   FileText,
   Upload,
@@ -201,22 +197,6 @@ export default function AtividadesPage() {
     setDocumentosTemporarios(prev => prev.filter(doc => doc.id !== id));
   };
 
-  const handleVisualizarDocumento = (url: string) => {
-    window.open(url, '_blank');
-  };
-
-  const handleExcluirDocumento = (id: string) => {
-    if (atividadeSelecionada) {
-      setAtividades(prev => prev.map(a => 
-        a.id === id ? {
-          ...a,
-          documentos: a.documentos.filter(doc => doc.id !== id),
-          historicoAtualizacoes: a.historicoAtualizacoes.filter(hist => hist.id !== id)
-        } : a
-      ));
-    }
-  };
-
   const handleVisualizarDetalhes = (atividade: Atividade) => {
     setAtividadeSelecionada(atividade);
     setIsDetalhesModalOpen(true);
@@ -243,16 +223,55 @@ export default function AtividadesPage() {
     );
   });
 
-  const metricas = {
-    total: atividades.length,
-    concluidas: atividades.filter(a => a.status === 'concluida').length,
-    atrasadas: atividades.filter(a => 
-      new Date(a.dataPrevista) < new Date() && a.status !== 'concluida'
-    ).length
-  };
+  const exportarParaExcel = async () => {
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet('Atividades');
 
-  const exportarParaExcel = () => {
-    // Implemente a lógica para exportar para Excel
+    // Definir cabeçalhos
+    worksheet.columns = [
+      { header: 'Título', key: 'titulo', width: 30 },
+      { header: 'Descrição', key: 'descricao', width: 40 },
+      { header: 'Status', key: 'status', width: 15 },
+      { header: 'Prioridade', key: 'prioridade', width: 15 },
+      { header: 'Responsável', key: 'responsavel', width: 20 },
+      { header: 'Data Prevista', key: 'dataPrevista', width: 15 },
+      { header: 'Data Conclusão', key: 'dataConclusao', width: 15 },
+      { header: 'Quantidade de Documentos', key: 'qtdDocumentos', width: 20 }
+    ];
+
+    // Adicionar dados
+    atividadesFiltradas.forEach(atividade => {
+      worksheet.addRow({
+        titulo: atividade.titulo,
+        descricao: atividade.descricao,
+        status: atividade.status.toUpperCase(),
+        prioridade: atividade.prioridade.toUpperCase(),
+        responsavel: atividade.responsavel,
+        dataPrevista: new Date(atividade.dataPrevista).toLocaleDateString('pt-MZ'),
+        dataConclusao: atividade.dataConclusao ? new Date(atividade.dataConclusao).toLocaleDateString('pt-MZ') : '-',
+        qtdDocumentos: atividade.documentos.length
+      });
+    });
+
+    // Estilizar cabeçalhos
+    worksheet.getRow(1).font = { bold: true };
+    worksheet.getRow(1).fill = {
+      type: 'pattern',
+      pattern: 'solid',
+      fgColor: { argb: 'FFE0E0E0' }
+    };
+
+    // Gerar arquivo
+    const buffer = await workbook.xlsx.writeBuffer();
+    const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `atividades_${new Date().toLocaleDateString('pt-MZ')}.xlsx`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(url);
   };
 
   return (
