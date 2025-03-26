@@ -377,6 +377,7 @@ export default function ConfiguracoesPage() {
               <Button
                 variant={theme === 'system' ? 'default' : 'outline'}
                 onClick={() => toggleTheme('system')}
+                className={theme === 'system' ? 'bg-blue-600 hover:bg-blue-700 text-white' : 'btn-outline'}
               >
                 <Monitor className="w-4 h-4 mr-2" />
                 Seguir Sistema

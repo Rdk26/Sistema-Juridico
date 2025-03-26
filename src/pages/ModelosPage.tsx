@@ -212,7 +212,7 @@ export default function ModelosPage() {
             historicoVersoes: []
           });
           setIsModalOpen(true);
-        }} className="btn-primary">
+        }} className="bg-blue-600 hover:bg-blue-700 text-white">
           Novo Modelo
         </Button>
       </div>
@@ -393,7 +393,10 @@ export default function ModelosPage() {
               </div>
             </div>
             <DialogFooter>
-              <Button type="submit">
+              <Button 
+                type="submit"
+                className="bg-blue-600 hover:bg-blue-700 text-white"
+              >
                 {modeloEditando?.id ? 'Salvar Alterações' : 'Criar Modelo'}
               </Button>
             </DialogFooter>

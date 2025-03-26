@@ -76,6 +76,7 @@ export default function PaginaDeProcessos() {
   });
   const [modalAberto, setModalAberto] = useState(false);
   const [processoEmEdicao, setProcessoEmEdicao] = useState<Processo | null>(null);
+  const [novoProcesso, setNovoProcesso] = useState<Partial<Processo>>({});
   const [documentos, setDocumentos] = useState<File[]>([]);
   const [isDetalhesModalOpen, setIsDetalhesModalOpen] = useState(false);
   const [processoSelecionado, setProcessoSelecionado] = useState<Processo | null>(null);
@@ -166,6 +167,8 @@ export default function PaginaDeProcessos() {
       }]);
     }
     setModalAberto(false);
+    setProcessoEmEdicao(null);
+    setNovoProcesso({});
   };
 
   const excluirProcesso = (identificador: number) => {
@@ -546,7 +549,13 @@ export default function PaginaDeProcessos() {
         </DialogContent>
       </Dialog>
 
-      <Dialog open={modalAberto} onOpenChange={setModalAberto}>
+      <Dialog open={modalAberto} onOpenChange={(open) => {
+        setModalAberto(open);
+        if (!open) {
+          setProcessoEmEdicao(null);
+          setNovoProcesso({});
+        }
+      }}>
         <DialogContent className="sm:max-w-[800px] p-6">
           <DialogHeader>
             <DialogTitle>
@@ -563,28 +572,55 @@ export default function PaginaDeProcessos() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <Input
                 label="Número do Processo *"
-                value={processoEmEdicao?.numeroProcesso || ''}
-                onChange={e => setProcessoEmEdicao(prev => ({ 
-                  ...prev!, 
-                  numeroProcesso: e.target.value 
-                }))}
+                value={processoEmEdicao?.numeroProcesso || novoProcesso.numeroProcesso || ''}
+                onChange={e => {
+                  if (processoEmEdicao) {
+                    setProcessoEmEdicao(prev => ({ 
+                      ...prev!, 
+                      numeroProcesso: e.target.value 
+                    }));
+                  } else {
+                    setNovoProcesso(prev => ({ 
+                      ...prev, 
+                      numeroProcesso: e.target.value 
+                    }));
+                  }
+                }}
               />
               
               <Input
                 label="Cliente *"
-                value={processoEmEdicao?.cliente || ''}
-                onChange={e => setProcessoEmEdicao(prev => ({ 
-                  ...prev!, 
-                  cliente: e.target.value 
-                }))}
+                value={processoEmEdicao?.cliente || novoProcesso.cliente || ''}
+                onChange={e => {
+                  if (processoEmEdicao) {
+                    setProcessoEmEdicao(prev => ({ 
+                      ...prev!, 
+                      cliente: e.target.value 
+                    }));
+                  } else {
+                    setNovoProcesso(prev => ({ 
+                      ...prev, 
+                      cliente: e.target.value 
+                    }));
+                  }
+                }}
               />
               
               <Select
-                value={processoEmEdicao?.status || 'ativo'}
-                onValueChange={valor => setProcessoEmEdicao(prev => ({ 
-                  ...prev!, 
-                  status: valor as 'ativo' | 'arquivado' | 'concluido' 
-                }))}
+                value={processoEmEdicao?.status || novoProcesso.status || 'ativo'}
+                onValueChange={valor => {
+                  if (processoEmEdicao) {
+                    setProcessoEmEdicao(prev => ({ 
+                      ...prev!, 
+                      status: valor as 'ativo' | 'arquivado' | 'concluido' 
+                    }));
+                  } else {
+                    setNovoProcesso(prev => ({ 
+                      ...prev, 
+                      status: valor as 'ativo' | 'arquivado' | 'concluido' 
+                    }));
+                  }
+                }}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Selecione o status" />
@@ -598,43 +634,79 @@ export default function PaginaDeProcessos() {
               
               <Input
                 label="Responsável *"
-                value={processoEmEdicao?.responsavel || ''}
-                onChange={e => setProcessoEmEdicao(prev => ({ 
-                  ...prev!, 
-                  responsavel: e.target.value 
-                }))}
+                value={processoEmEdicao?.responsavel || novoProcesso.responsavel || ''}
+                onChange={e => {
+                  if (processoEmEdicao) {
+                    setProcessoEmEdicao(prev => ({ 
+                      ...prev!, 
+                      responsavel: e.target.value 
+                    }));
+                  } else {
+                    setNovoProcesso(prev => ({ 
+                      ...prev, 
+                      responsavel: e.target.value 
+                    }));
+                  }
+                }}
               />
             </div>
 
             <div className="space-y-4">
               <Input
                 label="Descrição *"
-                value={processoEmEdicao?.descricao || ''}
-                onChange={e => setProcessoEmEdicao(prev => ({ 
-                  ...prev!, 
-                  descricao: e.target.value 
-                }))}
+                value={processoEmEdicao?.descricao || novoProcesso.descricao || ''}
+                onChange={e => {
+                  if (processoEmEdicao) {
+                    setProcessoEmEdicao(prev => ({ 
+                      ...prev!, 
+                      descricao: e.target.value 
+                    }));
+                  } else {
+                    setNovoProcesso(prev => ({ 
+                      ...prev, 
+                      descricao: e.target.value 
+                    }));
+                  }
+                }}
               />
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <Input
                   label="Data de Início *"
                   type="date"
-                  value={processoEmEdicao?.dataInicio || ''}
-                  onChange={e => setProcessoEmEdicao(prev => ({ 
-                    ...prev!, 
-                    dataInicio: e.target.value 
-                  }))}
+                  value={processoEmEdicao?.dataInicio || novoProcesso.dataInicio || ''}
+                  onChange={e => {
+                    if (processoEmEdicao) {
+                      setProcessoEmEdicao(prev => ({ 
+                        ...prev!, 
+                        dataInicio: e.target.value 
+                      }));
+                    } else {
+                      setNovoProcesso(prev => ({ 
+                        ...prev, 
+                        dataInicio: e.target.value 
+                      }));
+                    }
+                  }}
                 />
                 
                 <Input
                   label="Prazo Final"
                   type="date"
-                  value={processoEmEdicao?.prazoFinal || ''}
-                  onChange={e => setProcessoEmEdicao(prev => ({ 
-                    ...prev!, 
-                    prazoFinal: e.target.value 
-                  }))}
+                  value={processoEmEdicao?.prazoFinal || novoProcesso.prazoFinal || ''}
+                  onChange={e => {
+                    if (processoEmEdicao) {
+                      setProcessoEmEdicao(prev => ({ 
+                        ...prev!, 
+                        prazoFinal: e.target.value 
+                      }));
+                    } else {
+                      setNovoProcesso(prev => ({ 
+                        ...prev, 
+                        prazoFinal: e.target.value 
+                      }));
+                    }
+                  }}
                 />
               </div>
             </div>
@@ -682,7 +754,10 @@ export default function PaginaDeProcessos() {
                 <Button type="button" variant="outline" onClick={() => setModalAberto(false)}>
                   Cancelar
                 </Button>
-                <Button type="submit">
+                <Button 
+                  type="submit"
+                  className="bg-blue-600 hover:bg-blue-700 text-white"
+                >
                   {processoEmEdicao ? 'Salvar Alterações' : 'Criar Processo'}
                 </Button>
               </DialogFooter>
